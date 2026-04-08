@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Real Popup Test</title>
+  <style>
+    body { font: 12px -apple-system, sans-serif; margin: 8px; width: 360px; background: #111; color: #eee; }
+    h2 { margin: 0 0 8px; font-size: 13px; color: #fff; }
+    .row { padding: 6px 8px; margin: 3px 0; border-radius: 4px; background: #222; border-left: 4px solid #555; }
+    .ok { background: #0a3d1f; border-left-color: #00ff66; color: #b8ffcb; }
+    .fail { background: #4d0a0a; border-left-color: #ff3030; color: #ffb8b8; }
+    .lbl { font-weight: 600; }
+    .msg { font-family: ui-monospace, monospace; font-size: 10px; margin-top: 2px; word-break: break-all; white-space: pre-wrap; }
+    #root { border: 2px dashed #555; min-height: 60px; padding: 8px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Real popup.js Loader Test</h2>
+  <div id="s1" class="row ok"><span class="lbl">1. HTML loaded</span><div class="msg">visible = OK</div></div>
+  <div id="s2" class="row"><span class="lbl">2. error handlers attached</span><div class="msg">waiting...</div></div>
+  <div id="s3" class="row"><span class="lbl">3. popup.js loaded (no errors during load)</span><div class="msg">waiting...</div></div>
+  <div id="s4" class="row"><span class="lbl">4. root has children after 1s</span><div class="msg">waiting...</div></div>
+  <div id="errs" class="row fail" style="display:none"><span class="lbl">CAPTURED ERRORS</span><div class="msg" id="errmsg"></div></div>
+  <h2>Real #root below:</h2>
+  <div id="root"></div>
+  <link rel="stylesheet" href="./popup.css">
+  <script src="./real-popup-loader.js"></script>
+</body>
+</html>

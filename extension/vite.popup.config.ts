@@ -20,6 +20,10 @@ const popupHtmlFix: Plugin = {
 export default defineConfig({
   base: "",
   plugins: [popupHtmlFix],
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "preact",
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),

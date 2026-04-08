@@ -22,6 +22,13 @@ export default defineConfig({
   // where pages are served from extension:// or safari-extension:// URLs.
   base: "",
   plugins: [stripCrossorigin],
+  // JSX → Preact's h() instead of React.createElement().
+  // Without this, Vite's default esbuild config emits React.createElement()
+  // calls and the popup throws "Can't find variable: React" at runtime.
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "preact",
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
