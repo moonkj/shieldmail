@@ -90,20 +90,27 @@ export async function dispatch(
         await deps.poller.start(record.aliasId, record.pollToken, record.address);
         return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
       } catch (err) {
-        // Demo fallback: if the Worker is unreachable, hand back a local fake
-        // alias so the popup UI can be exercised without backend deployment.
-        if (err instanceof NetworkError) {
-          const record = makeDemoAlias(msg.mode, msg.label);
-          record.origin = msg.origin;
-          await putActiveAlias(record);
-          if (msg.mode === "managed") await putManagedAlias(record);
-          return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
+        // Demo fallback: if the Worker is unreachable for ANY reason
+        // (NetworkError, http_*, timeout, missing api.shld.me DNS, etc.),
+        // hand back a local fake alias so the popup UI can be exercised
+        // without backend deployment. Only auth/rate-limit errors fall through
+        // to the real error UI.
+        if (
+          err instanceof RateLimitError ||
+          err instanceof TokenRevokedError ||
+          err instanceof AliasExpiredError
+        ) {
+          return {
+            type: "GENERATE_ALIAS_RESULT",
+            ok: false,
+            error: errorToCode(err),
+          };
         }
-        return {
-          type: "GENERATE_ALIAS_RESULT",
-          ok: false,
-          error: errorToCode(err),
-        };
+        const record = makeDemoAlias(msg.mode, msg.label);
+        record.origin = msg.origin;
+        await putActiveAlias(record);
+        if (msg.mode === "managed") await putManagedAlias(record);
+        return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
       }
     }
     case "FETCH_MESSAGES": {
