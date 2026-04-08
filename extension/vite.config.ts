@@ -13,7 +13,7 @@ export default defineConfig({
     target: "es2022",
     outDir: "dist",
     emptyOutDir: true,
-    sourcemap: true,
+    sourcemap: process.env["NODE_ENV"] !== "production",
     rollupOptions: {
       input: {
         content: resolve(__dirname, "src/content/index.ts"),

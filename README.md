@@ -59,7 +59,8 @@ ShieldMail/
 
 ```bash
 cd workers/email-router
-npm install
+npm install            # generates package-lock.json — commit this file
+npm ci                 # use this for reproducible deploys
 ```
 
 ### 2. Configure
@@ -113,8 +114,9 @@ curl "https://api.shld.me/alias/<aliasId>/messages?token=<pollToken>"
 
 ```bash
 cd extension
-npm install
-npm run build          # outputs to dist/
+npm install            # generates package-lock.json — commit this file
+npm ci                 # reproducible install from lockfile
+NODE_ENV=production npm run build   # outputs to dist/ (no sourcemaps)
 ```
 
 ### Load in Safari (development)
