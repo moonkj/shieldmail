@@ -2,7 +2,10 @@ import { defineConfig, type Plugin } from "vite";
 import { resolve } from "node:path";
 
 // IIFE script is a classic <script>, not a module. Strip type="module"
-// and crossorigin from injected tags, drop modulepreload links.
+// and crossorigin from injected tags, drop modulepreload links, AND add
+// defer so the script waits for DOM parsing (Vite injects scripts into
+// <head> by default; classic scripts there run before body, so
+// document.getElementById("root") returns null and render is skipped).
 const popupHtmlFix: Plugin = {
   name: "shieldmail:popup-html-fix",
   enforce: "post",
@@ -10,7 +13,9 @@ const popupHtmlFix: Plugin = {
     return html
       .replace(/\stype="module"/g, "")
       .replace(/\s+crossorigin(=("[^"]*"|'[^']*'))?/g, "")
-      .replace(/<link\s+rel="modulepreload"[^>]*>\s*/g, "");
+      .replace(/<link\s+rel="modulepreload"[^>]*>\s*/g, "")
+      // Add defer to all <script src=...> that don't already have it.
+      .replace(/<script\s+src=/g, "<script defer src=");
   },
 };
 
