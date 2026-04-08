@@ -18,7 +18,8 @@
 | 2. Architect 설계 | Architect | ✅ 완료 | ARCHITECTURE.md 10개 섹션 | 4개 논쟁 해결 |
 | **M1 Worker API + Email Worker** | Coder/Debugger/Test/Reviewer | ✅ 완료 (R2) | `workers/email-router/` 18 src + 118 tests | R1→R2→R3→R2-review 품질 사이클 |
 | **M2 Safari Extension (macOS)** | 6-agent team (R3) | ✅ 완료 | `extension/` 60+ files, `docs/UX_SPEC.md`, `assets/icons/` | R1→Debugger→R2→Test→Reviewer+lead hotfix |
-| 3. 성능·최적화 | Teammate 4 (Perf) | ⏳ 대기 | M4에서 SSE/WS 마이그레이션, polling 튜닝 | 요청시 |
+| **M4 SSE + 도메인 ×5 + Managed Mode 기반** | 리더 (R7) | ✅ 완료 | AliasChannel SSE 고도화, wrangler.toml 5도메인, crypto.ts/indexeddb.ts/migration.ts | commit 113443c |
+| 3. 성능·최적화 | Teammate 4 (Perf) | ⏳ 대기 | O1(HTML), O3(Turnstile), O4(도메인 자동화) 잔여 | 요청시 |
 | 4. 문서화 | Teammate 4 (Doc) | ⏳ 대기 | README, privacy policy, install guide | M5 릴리즈 전 |
 | **M3 iOS Safari Extension** | 6-agent team (R5) | ✅ 완료 | `ios/` Swift container + iOS floating button TS | Wave 1-6 완료 (Debugger BLOCKER 2건 + Reviewer MAJOR 1건 수정) |
 
@@ -102,8 +103,8 @@
 | O3 | Rate limit Turnstile 삽입 | M4 | 대기 |
 | O4 | 도메인 로테이션 자동화 | M4 | 대기 |
 | O5 | Alias 충돌 확률 증명 | M3 전 | ✅ 완료 (R4) — 10자→14자 확대 + 재시도 로직 적용 |
-| HIGH-1 (M1) | HMAC key 캐시 race (secret rotation) | M4 | TODO |
-| MED-1/2 (M1) | SSE dedup + replay race | M4 | TODO |
+| HIGH-1 (M1) | HMAC key 캐시 race (secret rotation) | M5 | TODO |
+| MED-1/2 (M1) | SSE dedup + replay race | M4 | ✅ 완료 (R7) — Last-Event-ID + reconnect-race fix |
 | M2-bk1 | injector shortcutLabel 플랫폼 분기 | M3 전 | ✅ 완료 (R4) |
 | M2-bk2 | PrivacyFooter 음수 TTL interval clear | M3 전 | ✅ 완료 (R4) |
 | M2-bk3 | forms.ts SPA fallback 주석 정정 | 언제든 | ✅ 완료 (R4) |
@@ -119,3 +120,4 @@
 - **R4** (2026-04-08) — M2 백로그 4건 + O5 alias 충돌 수정 완료, M3 준비 완료
 - **R5** (2026-04-08) — M3 iOS Safari Extension 구현: Swift container + iOS floating button + Keychain + 테스트 완료
 - **R6** (2026-04-08) — O2 App Store 리젝 리스크 해소: PrivacyInfo.xcprivacy + Review Notes + Privacy Policy
+- **R7** (2026-04-08) — M4 SSE 고도화 + 도메인 ×5 + Managed Mode crypto/IndexedDB/migration 기반 구축

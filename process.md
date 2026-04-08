@@ -165,3 +165,25 @@
 ### 다음 단계
 - **M4** — SSE/WS 마이그레이션 + 도메인 로테이션 2→5개 + Managed Mode 고도화
 - **Xcode 프로젝트 생성** — `brew install xcodegen && xcodegen generate`
+
+## 2026-04-08 — R7: M4 SSE 고도화 + 도메인 ×5 + Managed Mode 기반 구축
+
+### 커밋: `113443c feat(m4): SSE hardening, domain pool ×5, Managed Mode crypto + IndexedDB`
+
+#### Workers
+- `AliasChannel.ts`: Last-Event-ID 재생 중복 제거, reconnect-race 수정(클라이언트 등록을 storage.list 이전에), 30s 하트비트(recursive setTimeout), `fetch()` handleStream(request) 인자 전달 버그 수정
+- `wrangler.toml`: DOMAIN_POOL 5개 도메인으로 확장 (d1–d5.shld.me)
+
+#### Extension
+- `messaging.ts`: `SseActiveMessage` / `SseInactiveMessage` ExtRuntimeMessage 유니온 추가
+- `poller.ts`: `pauseForSse()` 알람 클리어, `resumeFromSse()` 알람 재등록
+- `background/index.ts`: SSE_ACTIVE/INACTIVE → poller 라우팅; update 시 migration 트리거
+- `background/migration.ts` (신규): chrome.storage.local → IndexedDB lazy 마이그레이션 + AES 키 생성 보장
+- `lib/crypto.ts` (신규): WebCrypto AES-256-GCM (generateKey, encrypt, decrypt, JWK export/import)
+- `lib/indexeddb.ts` (신규): shieldmail_v1 스키마 (aliasStore + messageStore, aliasId 인덱스)
+- `popup/MainScreen.tsx`: DO /stream 직접 EventSource 연결, 지수 백오프 재시도(최대 5회, 최대 30s), SSE_ACTIVE/INACTIVE 백그라운드 통보
+
+### 미해결 (O1, O3, O4 → 다음 라운드)
+- O1: Email Worker 대용량 HTML CPU/메모리 처리
+- O3: Rate limit Turnstile 삽입
+- O4: 도메인 로테이션 자동화
