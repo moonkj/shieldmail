@@ -227,3 +227,82 @@
 - O1: Email Worker 대용량 HTML CPU/메모리 처리
 - O3: Rate limit Turnstile 삽입
 - O4: 도메인 로테이션 자동화
+
+## 2026-04-08 — R10: iPhone Air 실기 설치 + iOS Safari 빌드 사이클 (10+ commits)
+
+### 리더 판단
+사용자가 "iPhone Air에 릴리즈로 설치"를 요청 → Xcode 26 + iOS 19에서 Apple 공식 Safari Web Extension API와 코드 사이의 다수 호환성 문제 발견. 발견 → 수정 → 재설치 사이클 10+ 회 반복하여 최종 동작.
+
+### iOS 빌드 블로커 (R10 commit `d17ff17`)
+- `SafariExtensionHandler.swift`: `SFSafariExtensionHandler` (macOS only) → `NSObject + NSExtensionRequestHandling` 스켈레톤 (iOS 호환)
+- `ContentView.swift`: `SFSafariApplication.showPreferencesForExtension` 제거, `SFSafariExtensionManager.getStateOfSafariExtension` 제거 (Xcode 26에서 API 변경)
+- 엔타이틀먼트: App Groups + Keychain 제거 (MVP에서 `browser.storage.local`만 사용)
+- `ios-bridge.ts`: `safari.extension.dispatchMessage` (Safari App Extension / macOS API) → `chrome.storage.local` + `navigator.vibrate()`로 교체
+- `injector.ts`: `shieldIcon.css` → `?inline` (Vite 5.4+ 필수)
+- `package.json`: 모든 패키지 버전을 npm에 실제 배포된 버전으로 정확히 핀 (`typescript 5.9.3`, `vite 5.4.21`, `preact 10.29.1`, `hono 4.12.12`, `wrangler 3.114.17`)
+
+### 확장 프로그램 인식 문제 (R10 commits `6a194e5`, `2b28258`)
+- `extension/public/manifest.json` + `extension/public/icons/`: 누락된 PNG 아이콘 6개 생성, manifest를 public/에 둠
+- `manifest.json` `default_locale` 제거 (`_locales/<lang>/messages.json` 부재 시 Safari가 무효 처리)
+
+### appex 번들 구조 (R10 commit `9575dbc`)
+- `ios/project.yml`: `type:folder` 리소스(앱ex/dist/manifest.json) → `postCompileScripts` rsync로 `extension/dist/` 내용을 `.appex` 루트에 직접 복사 (Safari는 `manifest.json`이 appex 루트에 있어야 인식)
+
+### popup 빈 화면 디버깅 — 6단계 누적 fix
+사용자가 "팝업이 빈 화면으로 뜬다" 보고 → 진단 도구 작성 → 다중 가설 검증 → 단계별 fix:
+
+#### 1. App.tsx 즉시 렌더 (R10 commit `b6ccbdc`)
+- `screen = null` → `useState<Screen>("main")` 즉시 렌더, `chrome.storage.local.get` 1.5s `Promise.race` 타임아웃
+
+#### 2. 상대 경로 (R10 commit `b3f439e`)
+- `vite.config.ts` `base: ""` 추가 — `safari-web-extension://` URL에서 절대 경로(`/popup.js`) 동작 안 함
+
+#### 3. popup HTML root level (R10 commit `f95a4c1`)
+- `extension/popup.html` 생성 → Vite 입력으로 사용 → `dist/popup.html` 루트에 출력 (이전: `dist/src/popup/index.html` 깊은 경로)
+
+#### 4. crossorigin 제거 (R10 commit `2eef63c`)
+- `vite.config.ts` `stripCrossorigin` 플러그인: `crossorigin` 속성 + `modulepreload` 링크 제거
+
+#### 5. IIFE 단일 파일 빌드 (R10 commit `f9af4d8`)
+- `vite.popup.config.ts` 신규: popup만 IIFE 포맷, `inlineDynamicImports: true`, sibling chunks 없음 (Apple 공식 Xcode Safari Web Extension 템플릿 패턴)
+- `package.json` build: `vite build && vite build -c vite.popup.config.ts` 체이닝
+- `extension/public/diag-*.{html,js}` 7-step 진단 페이지 (팀 에이전트 작성, 향후 iOS popup 디버깅 인프라)
+
+#### 6. JSX → Preact h() (R10 commit `88fd00a`)
+- **결정적 fix**: `vite.config.ts` + `vite.popup.config.ts` 양쪽에 `esbuild: { jsx: "automatic", jsxImportSource: "preact" }`
+- 이전: Vite의 기본 esbuild가 JSX를 `React.createElement()`로 컴파일 → React 미정의 → IIFE 시작 시 throw → 빈 화면
+- `window.error` 캐치 진단 (`extension/public/real-popup-test.html`)으로 정확한 에러 메시지 잡음: `ReferenceError: Can't find variable: React @ popup.js:1:34963`
+
+#### 7. defer 속성 (R10 commit `5455fcc`)
+- `vite.popup.config.ts` `popupHtmlFix` 플러그인에 `defer` 속성 추가
+- 이전: classic `<script>`가 `<head>`에서 동기 실행 → DOM 미생성 → `getElementById("root") === null` → `&&` 단락 → render 호출 안 됨 (no error)
+- `defer`로 DOM 파싱 대기
+
+### 팀 에이전트 협업 (R10)
+- **3 병렬 에이전트 1차** (리서치 + 정적 분석 + 진단 설계): IIFE 빌드 패턴 + 7-step 진단 페이지 산출
+- **3 병렬 에이전트 2차** (번들 감사 + 설치 검증 + 컴포넌트 트리 리뷰): 번들 자체 깨끗 확인, popup 컴포넌트 트리에서 throw 가능 지점 추적
+
+### Demo Mode 추가 (R10 commits `7585e33`, `880be4a`)
+사용자가 "이메일 생성 동작 안 함" 보고 → 옵션 A (Demo Mode) 우선 진행:
+- `MainScreen.tsx`: `origin` null fallback → `https://demo.local`, popup-side 가짜 alias 생성 (background SW 응답 없을 때)
+- `handlers.ts`: `NetworkError` 시 `makeDemoAlias()` 호출, FETCH_MESSAGES에서 `demo:` prefix면 fake 6자리 OTP 합성
+- 인라인 디버그 HUD로 단계별 로그 표시 → 사용자 스크린샷으로 정확히 어디까지 동작하는지 확인 → **모두 정상 동작 확인** (origin 추출, storage, crypto, Preact onClick)
+- 디버그 HUD 제거 후 v14 clean 빌드 배포
+
+### 최종 검증 (스크린샷)
+```
+임시 주소: 708d2d2ae9a737@d5.shld.me
+OTP: 167673
+이 주소 만료까지 59:47
+origin=https://qr.dhlottery.co.kr (실제 활성 탭)
+```
+
+### 핵심 교훈
+- iOS Safari 19 + Xcode 26은 macOS Safari API와 다수 비호환 (`SFSafariExtensionHandler`, `SFSafariApplication.showPreferencesForExtension`, `getStateOfSafariExtension`)
+- Vite 기본 출력은 Safari Web Extension popup과 호환되지 않음 (절대 경로, 깊은 출력 디렉토리, `crossorigin`, sibling chunks, JSX/React 가정, head 동기 script)
+- Apple 공식 Safari Web Extension 템플릿이 `<script>` (no module)을 사용하는 이유는 위 모든 문제를 한꺼번에 회피하기 위함
+- 진단 인프라 (window.error 캐치, visible debug HUD)가 silent fail 디버깅의 결정적 도구
+
+### 다음 단계
+- **옵션 B**: 실제 Cloudflare Worker 배포 (KV 생성, HMAC_KEY secret, Email Routing catch-all 5개 도메인, `wrangler deploy`)
+- 옵션 C: A + B 모두

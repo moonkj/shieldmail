@@ -124,3 +124,4 @@
 - **R7** (2026-04-08) — M4 SSE 고도화 + 도메인 ×5 + Managed Mode crypto/IndexedDB/migration 기반 구축
 - **R8** (2026-04-08) — O1 email size guard, O3 defer, O4 완료 처리, README.md
 - **R9** (2026-04-08) — M5 완료: 정확 버전 고정, .npmrc, sourcemap 비활성화, RELEASE_CHECKLIST.md, MIT LICENSE
+- **R10** (2026-04-08) — iPhone Air 실기 설치 사이클: iOS Safari 19/Xcode 26 호환 fix 다수, popup 빈 화면 7단계 누적 디버그(절대→상대 경로, root entry, crossorigin 제거, IIFE, JSX→Preact, defer), Demo Mode 검증 완료. 6 병렬 에이전트 2차 (리서치+분석+진단)
