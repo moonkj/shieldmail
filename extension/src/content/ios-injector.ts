@@ -182,7 +182,8 @@ export class IOSFloatingButtonInjector {
     window.visualViewport?.addEventListener("resize", onViewportResize, { passive: true });
     window.visualViewport?.addEventListener("scroll", onViewportResize, { passive: true });
 
-    // Touch events
+    // Touch events — passive:false required so preventDefault() suppresses
+    // the 300ms tap delay and ghost click on iOS.
     btn.addEventListener("touchstart", (ev) => {
       ev.preventDefault();
       haptic("medium");

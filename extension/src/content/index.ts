@@ -104,9 +104,16 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
     }
   }, { passive: true });
 
-  // FORCE_INJECT receiver (keyboard shortcut on external keyboard / Siri Shortcut)
+  // FORCE_INJECT receiver.
+  // On iOS, Safari's dispatchMessageToScript routes to chrome.runtime.onMessage
+  // with the shape: { name: "FORCE_INJECT", userInfo: {} }.
+  // On macOS, background sends { type: "FORCE_INJECT" } directly.
+  // We handle both shapes so the same code path works on both platforms.
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (!msg || (msg as { type?: string }).type !== "FORCE_INJECT") return undefined;
+    const isForceInject =
+      (msg as { type?: string })?.type === "FORCE_INJECT" ||
+      (msg as { name?: string })?.name === "FORCE_INJECT";
+    if (!isForceInject) return undefined;
     const field =
       currentInput ??
       findEmailLikeInput(document) ??

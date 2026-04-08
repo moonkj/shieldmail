@@ -60,30 +60,33 @@ export function appendRecentAlias(alias: {
 
 /**
  * Request a token from Keychain. The response is delivered asynchronously
- * via a "__shieldmail__tokenResult" custom event.
- * Returns a Promise that resolves with the token or null (1s timeout).
+ * via chrome.runtime.onMessage (Safari's dispatchMessageToScript routes
+ * to the extension's runtime message channel, not CustomEvent).
+ * Returns a Promise that resolves with the token or null (3s timeout).
  */
 export function loadToken(aliasId: string): Promise<string | null> {
   if (!isSafariExtensionContext()) return Promise.resolve(null);
   return new Promise((resolve) => {
     const timeoutId = setTimeout(() => {
-      document.removeEventListener("__shieldmail__tokenResult", handler);
+      chrome.runtime.onMessage.removeListener(handler);
       resolve(null);
-    }, 1000);
+    }, 3000);
 
-    const handler = (ev: Event) => {
-      const detail = (ev as CustomEvent<{ aliasId: string; token: string | null }>).detail;
-      if (detail.aliasId !== aliasId) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (msg: any) => {
+      if (!msg || msg.name !== "tokenResult") return;
+      if (msg.userInfo?.aliasId !== aliasId) return;
       clearTimeout(timeoutId);
-      document.removeEventListener("__shieldmail__tokenResult", handler);
-      resolve(detail.token);
+      chrome.runtime.onMessage.removeListener(handler);
+      resolve((msg.userInfo?.token as string | null) ?? null);
     };
 
-    document.addEventListener("__shieldmail__tokenResult", handler);
+    chrome.runtime.onMessage.addListener(handler);
     try {
       safari.extension.dispatchMessage("getToken", { aliasId });
     } catch {
       clearTimeout(timeoutId);
+      chrome.runtime.onMessage.removeListener(handler);
       resolve(null);
     }
   });

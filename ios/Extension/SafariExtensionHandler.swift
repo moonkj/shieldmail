@@ -39,8 +39,11 @@ class SafariExtensionHandler: SFSafariExtensionHandler {
             )
 
         case "storeAliases":
-            guard let aliases = userInfo?["aliases"] as? [[String: Any]] else { return }
-            keychain.storeRecentAliases(aliases)
+            // JS sends { aliases: [{ aliasId, address, label? }] } (array of one).
+            // Use appendRecentAlias to prepend the newest entry and keep max 3.
+            guard let aliases = userInfo?["aliases"] as? [[String: Any]],
+                  let first   = aliases.first else { return }
+            keychain.appendRecentAlias(first)
 
         case "getAliases":
             let aliases = keychain.loadRecentAliases()

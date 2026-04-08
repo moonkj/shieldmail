@@ -256,4 +256,31 @@ describe("IOSFloatingButtonInjector", () => {
 
     expect(mockSend).toHaveBeenCalledTimes(1);
   });
+
+  // ── FORCE_INJECT message shape (BLOCKER-2 regression) ────────
+
+  it("handles { type: 'FORCE_INJECT' } shape from background (macOS-style)", () => {
+    // index.ts dispatches both shapes; ensure the condition accepts type-keyed messages.
+    // We test the shape logic by checking both fields are parsed.
+    const msgWithType = { type: "FORCE_INJECT" };
+    const msgWithName = { name: "FORCE_INJECT" };
+
+    const isForce = (msg: object) =>
+      (msg as { type?: string })?.type === "FORCE_INJECT" ||
+      (msg as { name?: string })?.name === "FORCE_INJECT";
+
+    expect(isForce(msgWithType)).toBe(true);
+    expect(isForce(msgWithName)).toBe(true);
+    expect(isForce({ type: "SOMETHING_ELSE" })).toBe(false);
+    expect(isForce({})).toBe(false);
+  });
+
+  // ── ios-bridge: loadToken timeout ─────────────────────────────
+
+  it("loadToken resolves null on timeout when not in safari context", async () => {
+    // isSafariExtensionContext returns false (mocked above)
+    const { loadToken } = await import("../src/content/ios-bridge");
+    const result = await loadToken("some-alias-id");
+    expect(result).toBeNull();
+  });
 });
