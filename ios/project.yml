@@ -44,12 +44,23 @@ targets:
           - "**/*.entitlements"
           - "**/Info.plist"
           - "**/PrivacyInfo.xcprivacy"
-    # The compiled extension/dist/ is copied as a resource bundle
     resources:
-      - path: ../extension/dist
-        buildPhase: resources
-        type: folder
       - path: Extension/PrivacyInfo.xcprivacy
+    # Safari requires manifest.json at the ROOT of the .appex bundle.
+    # type:folder copies the folder itself (appex/dist/manifest.json) — wrong.
+    # This script copies contents of extension/dist/ directly into the bundle root.
+    postCompileScripts:
+      - name: "Copy Web Extension Resources"
+        script: |
+          DIST="${SRCROOT}/../extension/dist"
+          DEST="${TARGET_BUILD_DIR}/${PRODUCT_NAME}.appex"
+          if [ -d "$DIST" ]; then
+            rsync -a "$DIST/" "$DEST/"
+            echo "Copied extension/dist → ${PRODUCT_NAME}.appex"
+          else
+            echo "error: extension/dist not found. Run: cd extension && npm run build"
+            exit 1
+          fi
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.shld.shieldmail.extension
