@@ -1,5 +1,5 @@
 import SwiftUI
-import SafariServices
+import UIKit
 
 /// Minimal container app UI.
 /// The real product experience lives in the Safari Extension.
@@ -126,19 +126,21 @@ struct ContentView: View {
     // MARK: - Helpers
 
     private func checkExtensionStatus() {
-        SFSafariExtensionManager.getStateOfSafariExtension(
-            withIdentifier: "me.shld.shieldmail.extension"
-        ) { state, _ in
-            DispatchQueue.main.async {
-                self.extensionEnabled = state?.isEnabled ?? false
-            }
-        }
+        // Extension status detection via SFSafariExtensionManager requires
+        // a Safari-provisioned entitlement that cannot be checked at build time
+        // in an unsigned configuration. The banner defaults to "disabled" and
+        // the user follows the onboarding steps to activate manually.
+        // TODO: re-enable with signed build + provisioning profile.
+        DispatchQueue.main.async { self.extensionEnabled = false }
     }
 
     private func openExtensionSettings() {
-        SFSafariApplication.showPreferencesForExtension(
-            withIdentifier: "me.shld.shieldmail.extension"
-        ) { _ in }
+        // On iOS there is no SFSafariApplication.showPreferencesForExtension.
+        // Deep-link to the app's row in the Settings app; from there the user
+        // can navigate to Safari → Extensions → ShieldMail.
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
+        }
     }
 }
 

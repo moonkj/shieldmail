@@ -1,93 +1,83 @@
 /**
- * ios-bridge.ts — Safari-specific native ↔ JS bridge.
+ * ios-bridge.ts — iOS Safari persistence + haptic helpers.
  *
- * On iOS Safari, content scripts can communicate with the native extension
- * handler (SafariExtensionHandler.swift) via:
- *   safari.extension.dispatchMessage(name, userInfo)   — JS → Swift
- *   document.addEventListener("__shieldmail__", ...)   — Swift → JS
- *     (dispatched via page.dispatchMessageToScript in the Swift handler)
+ * MVP implementation: uses browser.storage.local (chrome.storage.local) for
+ * token and alias persistence instead of native Keychain messaging.
+ * safari.extension.dispatchMessage is macOS Safari App Extension API —
+ * not available in iOS Safari Web Extensions.
  *
- * This module wraps those primitives so ios-injector.ts stays clean.
+ * Haptic feedback: uses the Web Vibration API (navigator.vibrate) which
+ * Safari on iOS 16+ supports. Short patterns map to UIImpactFeedbackGenerator
+ * styles as closely as possible.
+ *
+ * Post-MVP: native Keychain bridge via browser.runtime.sendNativeMessage
+ * + NSExtensionRequestHandling (skeleton in SafariExtensionHandler.swift).
  */
 
-declare const safari: {
-  extension: {
-    dispatchMessage(name: string, userInfo?: Record<string, unknown>): void;
-  };
+const TOKEN_KEY_PREFIX = "sm_token_";
+const ALIASES_KEY = "sm_recent_aliases";
+const MAX_RECENT_ALIASES = 3;
+
+// Vibration durations approximating iOS haptic styles.
+const HAPTIC_PATTERNS: Record<string, number | number[]> = {
+  light: 10,
+  medium: 20,
+  heavy: 40,
+  success: [10, 50, 10],
+  error: [40, 30, 40],
+  warning: [20, 30, 20],
+  selection: 10,
 };
 
-/** True when running inside Safari iOS/iPadOS extension context. */
-export function isSafariExtensionContext(): boolean {
-  return typeof safari !== "undefined" && typeof safari.extension !== "undefined";
+/**
+ * Trigger haptic feedback via the Web Vibration API.
+ * Silently no-ops if the browser/context doesn't support vibration.
+ */
+export function haptic(style: string): void {
+  try {
+    const pattern = HAPTIC_PATTERNS[style] ?? HAPTIC_PATTERNS["medium"];
+    navigator.vibrate?.(pattern as number);
+  } catch {
+    /* not supported — ignore */
+  }
+}
+
+/** Persist a poll token to extension storage. */
+export async function storeToken(aliasId: string, token: string): Promise<void> {
+  try {
+    await chrome.storage.local.set({ [`${TOKEN_KEY_PREFIX}${aliasId}`]: token });
+  } catch {
+    /* storage unavailable in this context */
+  }
 }
 
 /**
- * Trigger native haptic feedback.
- * style: "light" | "medium" | "heavy" | "success" | "error" | "warning" | "selection"
+ * Load a poll token from extension storage.
+ * Returns null if not found or storage unavailable.
  */
-export function haptic(style: string): void {
-  if (!isSafariExtensionContext()) return;
+export async function loadToken(aliasId: string): Promise<string | null> {
   try {
-    safari.extension.dispatchMessage("haptic", { style });
+    const key = `${TOKEN_KEY_PREFIX}${aliasId}`;
+    const result = await chrome.storage.local.get(key);
+    return (result[key] as string | undefined) ?? null;
   } catch {
-    /* silent — not in extension context */
+    return null;
   }
 }
 
-/** Persist a poll token to iOS Keychain via the native handler. */
-export function storeToken(aliasId: string, token: string): void {
-  if (!isSafariExtensionContext()) return;
-  try {
-    safari.extension.dispatchMessage("storeToken", { aliasId, token });
-  } catch {
-    /* silent */
-  }
-}
-
-/** Add an alias to the Keychain recent-aliases store (long-press menu). */
-export function appendRecentAlias(alias: {
+/** Prepend an alias to the recent-aliases list (max 3, deduped by aliasId). */
+export async function appendRecentAlias(alias: {
   aliasId: string;
   address: string;
   label?: string;
-}): void {
-  if (!isSafariExtensionContext()) return;
+}): Promise<void> {
   try {
-    safari.extension.dispatchMessage("storeAliases", { aliases: [alias] });
+    const stored = await chrome.storage.local.get(ALIASES_KEY);
+    const existing = (stored[ALIASES_KEY] as typeof alias[] | undefined) ?? [];
+    const deduped = existing.filter((a) => a.aliasId !== alias.aliasId);
+    const next = [alias, ...deduped].slice(0, MAX_RECENT_ALIASES);
+    await chrome.storage.local.set({ [ALIASES_KEY]: next });
   } catch {
-    /* silent */
+    /* storage unavailable */
   }
-}
-
-/**
- * Request a token from Keychain. The response is delivered asynchronously
- * via chrome.runtime.onMessage (Safari's dispatchMessageToScript routes
- * to the extension's runtime message channel, not CustomEvent).
- * Returns a Promise that resolves with the token or null (3s timeout).
- */
-export function loadToken(aliasId: string): Promise<string | null> {
-  if (!isSafariExtensionContext()) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    const timeoutId = setTimeout(() => {
-      chrome.runtime.onMessage.removeListener(handler);
-      resolve(null);
-    }, 3000);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handler = (msg: any) => {
-      if (!msg || msg.name !== "tokenResult") return;
-      if (msg.userInfo?.aliasId !== aliasId) return;
-      clearTimeout(timeoutId);
-      chrome.runtime.onMessage.removeListener(handler);
-      resolve((msg.userInfo?.token as string | null) ?? null);
-    };
-
-    chrome.runtime.onMessage.addListener(handler);
-    try {
-      safari.extension.dispatchMessage("getToken", { aliasId });
-    } catch {
-      clearTimeout(timeoutId);
-      chrome.runtime.onMessage.removeListener(handler);
-      resolve(null);
-    }
-  });
 }

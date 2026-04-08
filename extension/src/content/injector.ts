@@ -12,7 +12,7 @@ import type {
   AliasMode,
   RuntimeMessage,
 } from "../lib/types";
-import shieldStyles from "./shieldIcon.css";
+import shieldStyles from "./shieldIcon.css?inline";
 
 type IconState =
   | "default"
