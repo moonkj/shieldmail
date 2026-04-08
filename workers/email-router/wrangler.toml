@@ -7,9 +7,11 @@ compatibility_flags = ["nodejs_compat"]
 # NOTE: register *@d1.shld.me as an Email Routing destination in the
 # Cloudflare dashboard and route to this Worker. Email handler is
 # `export default { email(...) }` in src/index.ts.
-[[email]]
-name = "EMAIL"
-destination_addresses = []
+# Disabled until d1-d5.shld.me domains are added to Cloudflare and
+# Email Routing is enabled. Re-enable after dashboard config.
+# [[email]]
+# name = "EMAIL"
+# destination_addresses = []
 
 # ─────────────────────────────────────────────
 # KV: alias index
@@ -17,8 +19,8 @@ destination_addresses = []
 # Replace `id` and `preview_id` before deploy.
 [[kv_namespaces]]
 binding = "ALIAS_KV"
-id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
-preview_id = "REPLACE_WITH_REAL_KV_PREVIEW_ID"
+id = "996d9716e4774458994c57c281d99f1a"
+preview_id = "fe0a2777f04b4a548f7b2b3f068d9b97"
 
 # ─────────────────────────────────────────────
 # Durable Objects
@@ -33,7 +35,7 @@ class_name = "TokenBucket"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["AliasChannel", "TokenBucket"]
+new_sqlite_classes = ["AliasChannel", "TokenBucket"]
 
 # ─────────────────────────────────────────────
 # Vars (non-secret)
