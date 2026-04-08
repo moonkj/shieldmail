@@ -98,7 +98,7 @@
 | # | 이슈 | 마일스톤 | 상태 |
 |---|---|---|---|
 | O1 | Email Worker CPU/메모리 대용량 HTML | M4 | 대기 |
-| O2 | App Store 심사 `<all_urls>` 리젝 리스크 | M5 | 대기 |
+| O2 | App Store 심사 `<all_urls>` 리젝 리스크 | M5 | ✅ 완료 (R6) — Privacy manifest + Review Notes + Privacy Policy |
 | O3 | Rate limit Turnstile 삽입 | M4 | 대기 |
 | O4 | 도메인 로테이션 자동화 | M4 | 대기 |
 | O5 | Alias 충돌 확률 증명 | M3 전 | ✅ 완료 (R4) — 10자→14자 확대 + 재시도 로직 적용 |
@@ -117,4 +117,5 @@
 - **R2** (2026-04-08 오후) — **M1 Worker** 구현, 7 라운드 품질 사이클, 118 tests
 - **R3** (2026-04-08 저녁) — **M2 Safari Extension** 구현, **6 agent 병렬 + R2 cycle + lead hotfix**, UX_SPEC.md + 아이콘 SVG + 97 tests
 - **R4** (2026-04-08) — M2 백로그 4건 + O5 alias 충돌 수정 완료, M3 준비 완료
-- **R5** (2026-04-08 진행중) — M3 iOS Safari Extension 구현: Swift container + iOS floating button + Keychain + 테스트
+- **R5** (2026-04-08) — M3 iOS Safari Extension 구현: Swift container + iOS floating button + Keychain + 테스트 완료
+- **R6** (2026-04-08) — O2 App Store 리젝 리스크 해소: PrivacyInfo.xcprivacy + Review Notes + Privacy Policy

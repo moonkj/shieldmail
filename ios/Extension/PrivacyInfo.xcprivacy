@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- No user tracking of any kind -->
+  <key>NSPrivacyTracking</key>
+  <false/>
+
+  <!-- No tracking domains -->
+  <key>NSPrivacyTrackingDomains</key>
+  <array/>
+
+  <!--
+    Collected data types:
+    - Browsing History: local-only (signup form heuristic scoring). Never sent to server.
+    - Emails: OTP/verification-link regex extracts only. Raw email body is discarded immediately.
+      Stored in Durable Object memory for max 10 minutes, then auto-deleted via setAlarm().
+    Both types are NOT linked to user identity; no account required to use ShieldMail.
+  -->
+  <key>NSPrivacyCollectedDataTypes</key>
+  <array>
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeBrowsingHistory</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <!-- Signup form detection heuristic runs locally on each page load.
+             No page content or URL is ever transmitted to our servers. -->
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeEmailsOrTextMessages</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <!-- Regex-extracts OTP (6-8 digit codes) and verification links only.
+             Raw email body, sender, subject, and recipient are never stored.
+             Extracted data lives in server memory for ≤10 minutes then is deleted. -->
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+  </array>
+
+  <!--
+    Accessed system APIs.
+    The extension accesses the iOS Keychain to securely store:
+      - Poll tokens (JWT) for alias message retrieval
+      - Recent alias addresses (max 3) for the long-press context menu
+    No biometric or device-specific identifiers are read or written.
+  -->
+  <key>NSPrivacyAccessedAPITypes</key>
+  <array>
+    <dict>
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <!-- CA92.1: Access info from the same app that wrote it -->
+        <string>CA92.1</string>
+      </array>
+    </dict>
+  </array>
+
+</dict>
+</plist>

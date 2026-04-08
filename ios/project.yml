@@ -43,11 +43,13 @@ targets:
         excludes:
           - "**/*.entitlements"
           - "**/Info.plist"
+          - "**/PrivacyInfo.xcprivacy"
     # The compiled extension/dist/ is copied as a resource bundle
     resources:
       - path: ../extension/dist
         buildPhase: resources
         type: folder
+      - path: Extension/PrivacyInfo.xcprivacy
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.shld.shieldmail.extension

@@ -141,7 +141,27 @@
 - `extension/src/content/index.ts` — iOS/macOS 분기
 - `extension/test/ios-platform.test.ts`, `ios-bridge.test.ts`, `ios-injector.test.ts` 보강
 
-### 다음 단계 후보
-1. **M4** — Managed Mode 고도화, SSE/WS 마이그레이션, 도메인 로테이션 2→5개
-2. **M2 BLOCKER 잔여** — O2 App Store `<all_urls>` 리젝 리스크 Privacy note 초안
-3. **Xcode 프로젝트 생성** — `brew install xcodegen && xcodegen generate` 실행 필요
+### 다음 단계
+- **O2** 선행 처리 후 **M4** 착수
+
+## 2026-04-08 — R6: O2 App Store 리젝 리스크 해소
+
+### 리더 판단: M4 전 O2 선행 처리
+`host_permissions: https://*/*` 리젝 리스크 ~20% → ~5%로 감소. M5 릴리즈 경로 확보.
+
+### 산출물
+- `ios/Extension/PrivacyInfo.xcprivacy` — Apple Privacy Manifest
+  - NSPrivacyTracking: false
+  - NSPrivacyCollectedDataTypes: BrowsingHistory(로컬 전용) + EmailsOrTextMessages(10분 메모리)
+  - NSPrivacyAccessedAPITypes: UserDefaults CA92.1
+  - project.yml 리소스에 포함
+
+- `docs/APP_STORE_REVIEW_NOTES.md` — 영문 + 한국어 Review Notes 초안
+  - host_permissions 기술적 필요성, 프라이버시 보호 5가지, 테스트 방법
+
+- `docs/PRIVACY_POLICY.md` — Privacy Policy 전문
+  - 수집/미수집 분리, 10분 자동 삭제, 제3자: Cloudflare only, 사용자 권리
+
+### 다음 단계
+- **M4** — SSE/WS 마이그레이션 + 도메인 로테이션 2→5개 + Managed Mode 고도화
+- **Xcode 프로젝트 생성** — `brew install xcodegen && xcodegen generate`
