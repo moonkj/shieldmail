@@ -1,14 +1,15 @@
 /**
  * Alias id + domain selection.
  *
- * Per ARCHITECTURE.md decision O5: 10-char slice from `crypto.randomUUID`
- * is acceptable for M1; collision probability calc + retry strategy is
- * tracked but not blocking.
+ * O5 resolution: 14-char hex slice from `crypto.randomUUID` (56 bits,
+ * 2^56 ≈ 7.2×10^16 space). At 10M aliases the Birthday-Problem collision
+ * probability is ~0.07% — safe through M4 scale. Caller retries on KV
+ * collision (router.ts). Previous 10-char (40-bit) was unsafe at 500k+.
  */
 
-/** 10-char alias id, lowercased hex/dashless. */
+/** 14-char alias id, lowercased hex/dashless. */
 export function generateAliasId(): string {
-  return crypto.randomUUID().replace(/-/g, "").slice(0, 10);
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 14);
 }
 
 /**

@@ -19,7 +19,11 @@ export function PrivacyFooter({ expiresAt }: PrivacyFooterProps) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     if (!expiresAt) return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    const id = window.setInterval(() => {
+      const n = Date.now();
+      setNow(n);
+      if (n >= expiresAt) window.clearInterval(id);
+    }, 1000);
     return () => window.clearInterval(id);
   }, [expiresAt]);
 

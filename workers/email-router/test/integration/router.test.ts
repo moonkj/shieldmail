@@ -49,8 +49,8 @@ describe("POST /alias/generate", () => {
     );
     expect(status).toBe(200);
     const ok = data as GenerateResponse;
-    expect(ok.aliasId).toMatch(/^[0-9a-f]{10}$/);
-    expect(ok.address).toMatch(/^[0-9a-f]{10}@d[12]\.test\.shld\.me$/);
+    expect(ok.aliasId).toMatch(/^[0-9a-f]{14}$/);
+    expect(ok.address).toMatch(/^[0-9a-f]{14}@d[12]\.test\.shld\.me$/);
     expect(typeof ok.pollToken).toBe("string");
     expect(ok.pollToken.split(".").length).toBe(3);
     expect(typeof ok.expiresAt).toBe("number");
@@ -78,7 +78,7 @@ describe("POST /alias/generate", () => {
     });
     expect(resp.status).toBe(200);
     const j = (await resp.json()) as GenerateResponse;
-    expect(j.aliasId).toMatch(/^[0-9a-f]{10}$/);
+    expect(j.aliasId).toMatch(/^[0-9a-f]{14}$/);
   });
 });
 

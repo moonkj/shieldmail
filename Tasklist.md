@@ -20,7 +20,7 @@
 | **M2 Safari Extension (macOS)** | 6-agent team (R3) | ✅ 완료 | `extension/` 60+ files, `docs/UX_SPEC.md`, `assets/icons/` | R1→Debugger→R2→Test→Reviewer+lead hotfix |
 | 3. 성능·최적화 | Teammate 4 (Perf) | ⏳ 대기 | M4에서 SSE/WS 마이그레이션, polling 튜닝 | 요청시 |
 | 4. 문서화 | Teammate 4 (Doc) | ⏳ 대기 | README, privacy policy, install guide | M5 릴리즈 전 |
-| **NEXT. M3 iOS Safari Extension** | Architect → Team | ⏳ 대기 | Swift native container + iOS floating button | M2 merge 후 |
+| **NEXT. M3 iOS Safari Extension** | Architect → Team | 🟡 준비 완료 | Swift native container + iOS floating button | R4 정리 완료 → 즉시 착수 가능 |
 
 범례: ⏳ 대기 / 🟡 진행중 / ✅ 완료 / 🔁 복귀 / ⚠️ 블로커
 
@@ -101,13 +101,13 @@
 | O2 | App Store 심사 `<all_urls>` 리젝 리스크 | M5 | 대기 |
 | O3 | Rate limit Turnstile 삽입 | M4 | 대기 |
 | O4 | 도메인 로테이션 자동화 | M4 | 대기 |
-| O5 | Alias 충돌 확률 증명 | M3 전 | 대기 |
+| O5 | Alias 충돌 확률 증명 | M3 전 | ✅ 완료 (R4) — 10자→14자 확대 + 재시도 로직 적용 |
 | HIGH-1 (M1) | HMAC key 캐시 race (secret rotation) | M4 | TODO |
 | MED-1/2 (M1) | SSE dedup + replay race | M4 | TODO |
-| M2-bk1 | injector shortcutLabel 플랫폼 분기 | M3 전 | 대기 |
-| M2-bk2 | PrivacyFooter 음수 TTL interval clear | M3 전 | 대기 |
-| M2-bk3 | forms.ts SPA fallback 주석 정정 | 언제든 | 대기 |
-| M2-bk4 | injector `triggerFirstVisible` dead code 제거 | 언제든 | 대기 |
+| M2-bk1 | injector shortcutLabel 플랫폼 분기 | M3 전 | ✅ 완료 (R4) |
+| M2-bk2 | PrivacyFooter 음수 TTL interval clear | M3 전 | ✅ 완료 (R4) |
+| M2-bk3 | forms.ts SPA fallback 주석 정정 | 언제든 | ✅ 완료 (R4) |
+| M2-bk4 | injector `triggerFirstVisible` dead code 제거 | 언제든 | ✅ 완료 (R4) |
 
 ---
 
@@ -116,4 +116,4 @@
 - **R1** (2026-04-08 오전) — 초기 설계, 4개 병렬 에이전트 리서치 → ARCHITECTURE.md
 - **R2** (2026-04-08 오후) — **M1 Worker** 구현, 7 라운드 품질 사이클, 118 tests
 - **R3** (2026-04-08 저녁) — **M2 Safari Extension** 구현, **6 agent 병렬 + R2 cycle + lead hotfix**, UX_SPEC.md + 아이콘 SVG + 97 tests
-- **R4** (예정) — M3 iOS Safari Extension 또는 M2 핫픽스 백로그 처리
+- **R4** (2026-04-08) — M2 백로그 4건 + O5 alias 충돌 수정 완료, M3 준비 완료

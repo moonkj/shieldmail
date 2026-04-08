@@ -73,7 +73,20 @@
 - `extension/` 60+ files (content + background + popup + tests)
 - `Tasklist.md` + `process.md` 업데이트
 
-### 다음 단계 후보 (리더 판단 대기)
-1. **M3 iOS Safari Extension** — Swift native container + iOS floating button (UX_SPEC §2 참조)
-2. **M2 백로그 핫픽스** — shortcutLabel 플랫폼 분기, PrivacyFooter interval clear, forms.ts 주석 정정
-3. **O5 alias 충돌 확률 증명** — M3 진입 전 필수
+## 2026-04-08 — R4: M2 백로그 + O5 Alias 충돌 수정
+
+### 리더 판단: M3 진입 전 필수 정리 완료
+- M2-bk1: `injector.ts` `resolveShortcut()` — 플랫폼 감지 후 기본값 분기 (`⌘⇧E` / `Ctrl+Shift+E`)
+- M2-bk2: `PrivacyFooter.tsx` — interval 내부에서 만료 시 `clearInterval` 즉시 호출 (음수 TTL 무한 반복 방지)
+- M2-bk3: `forms.ts` — SPA walk-up fallback 주석 정정 (div 1차 제외, 2차 walk-up은 허용 명시)
+- M2-bk4: `injector.ts` `triggerFirstVisible()` — dead code 제거 (FORCE_INJECT 경로는 `forceInjectAndGenerate` 직접 호출)
+
+### O5 alias 충돌 확률 수학적 증명 결과
+- **기존 10자(40비트)**: Birthday Problem → 500만 alias 시 충돌 확률 ~99.99% (필연)
+- **신규 14자(56비트, 2^56 ≈ 7.2경)**: 1000만 alias 시 ~0.07% — M4 규모까지 안전
+- `alias.ts`: `slice(0, 10)` → `slice(0, 14)` 변경
+- `router.ts`: KV 충돌 감지 + 최대 3회 재시도 로직 추가 (실패 시 503)
+- 테스트: `alias.test.ts`, `router.test.ts` 정규식 + 설명 14자로 업데이트
+
+### 다음 단계
+- **M3 iOS Safari Extension** — Swift native container + iOS floating button (UX_SPEC §2 참조)

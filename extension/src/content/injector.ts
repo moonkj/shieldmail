@@ -156,21 +156,6 @@ export class ShieldIconInjector {
     if (icon) void this.handleActivate(icon);
   }
 
-  /** Programmatic trigger (keyboard shortcut path). */
-  public async triggerFirstVisible(): Promise<void> {
-    // Try any mounted icon's input first
-    const firstInput = document.querySelector<HTMLInputElement>(
-      'input[type="email"], input[autocomplete*="email"], input[inputmode="email"]'
-    );
-    if (!firstInput) return;
-    let icon = this.mounted.get(firstInput);
-    if (!icon) {
-      this.inject(firstInput);
-      icon = this.mounted.get(firstInput);
-    }
-    if (icon) await this.handleActivate(icon);
-  }
-
   /* ------------------------------- internals ------------------------------- */
 
   private positionHost(icon: MountedIcon): void {
@@ -253,6 +238,12 @@ export class ShieldIconInjector {
   // is handled exclusively via manifest commands + background FORCE_INJECT.
 
   private resolveShortcut(): void {
+    // Platform-aware default: macOS uses ⌘, others use Ctrl.
+    const isMac =
+      navigator.platform.startsWith("Mac") ||
+      (navigator as unknown as { userAgentData?: { platform?: string } })
+        .userAgentData?.platform === "macOS";
+    this.shortcutLabel = isMac ? "⌘⇧E" : "Ctrl+Shift+E";
     try {
       chrome.commands?.getAll?.((cmds) => {
         const c = cmds.find((x) => x.name === "shieldmail-generate");

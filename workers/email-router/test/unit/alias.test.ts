@@ -10,18 +10,18 @@ import { generateAliasId, pickDomain, fullAddress } from "../../src/lib/alias.js
  */
 
 describe("generateAliasId", () => {
-  it("returns a 10-character string", () => {
+  it("returns a 14-character string", () => {
     const id = generateAliasId();
-    expect(id.length).toBe(10);
+    expect(id.length).toBe(14);
   });
 
   it("contains only lowercase hex characters (no dashes)", () => {
     const id = generateAliasId();
-    expect(id).toMatch(/^[0-9a-f]{10}$/);
+    expect(id).toMatch(/^[0-9a-f]{14}$/);
   });
 
   it("produces no collisions in 1000 generations (smoke)", () => {
-    // 10 hex chars = 16^10 ≈ 1.1e12. 1000 picks → birthday prob ~ 4e-7.
+    // 14 hex chars = 16^14 ≈ 7.2e16 (56-bit). 1000 picks → birthday prob ~ 7e-12.
     // This is a smoke test, not a statistical proof.
     const set = new Set<string>();
     for (let i = 0; i < 1000; i++) set.add(generateAliasId());

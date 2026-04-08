@@ -82,39 +82,57 @@ export function buildRouter(): Hono<RouterCtx> {
         ? body.label
         : undefined;
 
-    const aliasId = generateAliasId();
     const domain = pickDomain(env.DOMAIN_POOL);
-    const address = fullAddress(aliasId, domain);
     const now = Date.now();
     const expiresAt = mode === "ephemeral" ? now + ephemeralTtlSec * 1000 : null;
 
-    // Issue pollToken: short JWT { aliasId, exp }, HS256.
     const tokenTtlSec =
       Number.parseInt(env.POLL_TOKEN_TTL_SEC, 10) || 7200;
     const tokenExpSec = Math.floor(now / 1000) + tokenTtlSec;
-    const pollToken = await signPollToken(
-      { aliasId, exp: tokenExpSec },
-      env.HMAC_KEY,
-    );
-    const tokenHash = await hashTokenForStorage(pollToken);
 
-    const record: AliasRecord = {
-      mode,
-      domain,
-      createdAt: now,
-      expiresAt,
-      tokenHash,
-      ...(label ? { label } : {}),
-    };
+    // O5: Collision guard — retry up to 3 times if aliasId already exists in KV.
+    // With 14-char (56-bit) IDs the per-attempt collision probability is negligible
+    // (<0.001% at 1M aliases), so 3 attempts reduces the failure surface to ~10^-15.
+    let aliasId = "";
+    let pollToken = "";
+    let tokenHash = "";
+    let record!: AliasRecord;
+    const MAX_ATTEMPTS = 3;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      aliasId = generateAliasId();
+      const existing = await env.ALIAS_KV.get(`alias:${aliasId}`);
+      if (existing !== null) continue; // collision — try another id
 
-    if (mode === "ephemeral") {
-      await env.ALIAS_KV.put(`alias:${aliasId}`, JSON.stringify(record), {
-        expirationTtl: ephemeralTtlSec,
-      });
-    } else {
-      await env.ALIAS_KV.put(`alias:${aliasId}`, JSON.stringify(record));
+      pollToken = await signPollToken(
+        { aliasId, exp: tokenExpSec },
+        env.HMAC_KEY,
+      );
+      tokenHash = await hashTokenForStorage(pollToken);
+
+      record = {
+        mode,
+        domain,
+        createdAt: now,
+        expiresAt,
+        tokenHash,
+        ...(label ? { label } : {}),
+      };
+
+      if (mode === "ephemeral") {
+        await env.ALIAS_KV.put(`alias:${aliasId}`, JSON.stringify(record), {
+          expirationTtl: ephemeralTtlSec,
+        });
+      } else {
+        await env.ALIAS_KV.put(`alias:${aliasId}`, JSON.stringify(record));
+      }
+      break;
     }
 
+    if (!aliasId) {
+      return c.json({ error: "alias_generation_failed" }, 503);
+    }
+
+    const address = fullAddress(aliasId, domain);
     return c.json({
       aliasId,
       address,

@@ -80,12 +80,14 @@ export function discoverForms(doc: Document): FormCandidate[] {
   const looseEmail = Array.from(doc.querySelectorAll<HTMLInputElement>("input"))
     .find((i) => !seen.has(i) && !i.closest("form") && isVisible(i) && (i.type === "email" || EMAIL_FIELD_HINT.test(`${i.name} ${i.id} ${i.placeholder}`)));
   if (looseEmail) {
-    // Narrow container to semantic ancestors; `div` is excluded because it is too broad.
+    // Prefer semantic ancestors first (div excluded — too broad for the primary pass).
+    // Secondary walk-up may return any element including div, but is bounded to
+    // containers with at most 2 extra inputs to limit false-positive scope.
     let container = looseEmail.closest(
       "form, [role='form'], [aria-labelledby], section, main, article"
     ) as HTMLElement | null;
     if (!container) {
-      // Fallback: nearest ancestor with at most 2 extra inputs beyond the email field (bounded scope).
+      // Bounded walk-up: accepts any ancestor (including div) with ≤2 additional inputs.
       let node: HTMLElement | null = looseEmail.parentElement;
       while (node && node !== doc.body) {
         const extra = node.querySelectorAll("input").length - 1;
