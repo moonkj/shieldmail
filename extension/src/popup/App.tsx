@@ -8,28 +8,35 @@ import { SettingsScreen } from "./screens/SettingsScreen.js";
 export type Screen = "onboarding" | "main" | "managed" | "settings";
 
 export function App() {
-  const [screen, setScreen] = useState<Screen | null>(null);
+  // Default to "main" so the popup is never blank while storage resolves.
+  // useEffect below will redirect to "onboarding" if needed.
+  const [screen, setScreen] = useState<Screen>("main");
 
   useEffect(() => {
     let mounted = true;
     const init = async (): Promise<void> => {
-      if (typeof chrome === "undefined" || !chrome.storage?.local) {
-        if (mounted) setScreen("main");
-        return;
+      if (typeof chrome === "undefined" || !chrome.storage?.local) return;
+      try {
+        // 1.5s timeout: if storage hangs (iOS sandbox), stay on "main".
+        const res = await Promise.race([
+          chrome.storage.local.get("onboardingCompleted") as Promise<{
+            onboardingCompleted?: boolean;
+          }>,
+          new Promise<{ onboardingCompleted?: boolean }>((resolve) =>
+            setTimeout(() => resolve({}), 1500),
+          ),
+        ]);
+        if (!mounted) return;
+        if (!res.onboardingCompleted) setScreen("onboarding");
+      } catch {
+        // Storage unavailable — stay on "main".
       }
-      const res = (await chrome.storage.local.get("onboardingCompleted")) as {
-        onboardingCompleted?: boolean;
-      };
-      if (!mounted) return;
-      setScreen(res.onboardingCompleted ? "main" : "onboarding");
     };
     void init();
     return () => {
       mounted = false;
     };
   }, []);
-
-  if (screen === null) return null;
 
   switch (screen) {
     case "onboarding":
