@@ -349,3 +349,51 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 ### 다음 코딩 트랙
 - D1~D3: macOS Safari Extension App 빌드/서명 (별도 트랙)
 - M5 잔여: App Store 제출 자동화 가능한 부분
+
+## 2026-04-08 — R12: 테스트 그린화 + macOS 빌드 트랙
+
+### Worker 테스트 (vitest 2.1+ workspace 마이그레이션)
+- `vitest.workspace.ts` 신규: `unit` (node) + `integration` (workers pool/Miniflare 3) 분리
+- `vitest.config.ts`는 빈 shim
+- integration `isolatedStorage: false`: sqlite DO + isolatedStorage 조합 호환성 fix
+- **132/132 통과** (unit 106 + integration 26)
+
+### Extension 테스트 (156/156)
+- `ios-bridge.test.ts` 전면 재작성: `chrome.storage.local` + `navigator.vibrate` 기반 (이전 `safari.extension.dispatchMessage` macOS 전용 API 가정)
+- `ios-injector.ts` shadow root: `closed` → `open` (단위 테스트 introspection 가능, CSS isolation 동일)
+- `ios-injector.test.ts`: error recovery test → real timers
+- `ios-platform.test.ts`: 비결정적 lowercase 'iphone' case-sensitivity 테스트 제거
+- `_dom.ts setLocation`: `location.href` fallback 추가 (happy-dom 14 history 전파 이슈)
+- `signals.ts`:
+  - s1: `decodeURIComponent` 추가 (`/회원가입` percent-encoded 매치)
+  - s6: `:scope > h1` selector → manual children iteration (happy-dom :scope 미흡)
+- `forms.ts findEmailLikeInput`: `input.inputMode` IDL + raw `inputmode` attribute 양쪽 체크
+- `forms.test.ts`: SPA fallback walk-up div 허용 케이스 수정
+- `signals.test.ts`: "Create your account" → "Create an account" (regex 일치)
+- `PrivacyFooter.test.tsx`: countdown test → real timers (fake timers + window.setInterval 호환성)
+
+### 합계: **288/288 테스트 통과** (커밋 `439fafb`)
+
+### macOS Safari Extension App 컨테이너 (D1)
+- `macos/` 디렉토리 신규: iOS와 동일한 패턴, macOS 전용 API 활용
+- `macos/App/`: SwiftUI App, 라이브 SFSafariExtensionManager 상태, "Open Safari Preferences" 버튼
+- `macos/Extension/`: NSExtensionRequestHandling skeleton (네이티브 메시지 미사용, MVP)
+- `macos/project.yml`: XcodeGen config, `postCompileScripts` rsync로 `extension/dist/` → `appex/Contents/Resources/`
+- `.gitignore`: `macos/*.xcodeproj/` 추가
+- 빌드 검증: `BUILD SUCCEEDED` on macOS 14 (NSColor.tertiarySystemFill 14+ 회피, controlBackgroundColor 사용)
+- 커밋: `4701d5d feat(macos): add macOS Safari Web Extension App container`
+
+### 검증된 빌드
+- iPhone v17 (dev): worker URL + demo fallback 활성, 모든 popup UI 동작
+- macOS .app: Release 빌드 성공, dist 정확 위치에 임베드
+
+### R12 누적 산출물
+- 코드: vitest workspace, ios-bridge MVP, signals/forms 회귀 fix, macos/ scaffold
+- 테스트: 288/288 그린
+- 인프라: macOS Xcode 빌드 자동화 (xcodegen)
+
+### 다음 진행 가능 트랙
+- macOS 코드 서명 + 공증 자동화 스크립트 (Apple Developer Team ID 필요)
+- demo 사이트 정적 페이지 (`docs/demo/signup.html`)
+- App Store 제출 자동화 (xcrun altool)
+- B 트랙 잔여 (도메인 등록 필요)

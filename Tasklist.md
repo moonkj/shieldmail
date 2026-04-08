@@ -126,3 +126,4 @@
 - **R9** (2026-04-08) — M5 완료: 정확 버전 고정, .npmrc, sourcemap 비활성화, RELEASE_CHECKLIST.md, MIT LICENSE
 - **R10** (2026-04-08) — iPhone Air 실기 설치 사이클: iOS Safari 19/Xcode 26 호환 fix 다수, popup 빈 화면 7단계 누적 디버그(절대→상대 경로, root entry, crossorigin 제거, IIFE, JSX→Preact, defer), Demo Mode 검증 완료. 6 병렬 에이전트 2차 (리서치+분석+진단)
 - **R11** (2026-04-08) — Cloudflare Worker 실배포 (workers.dev) + production hardening: KV 생성, HMAC_KEY secret, sqlite DO migration, demo fallback dev 분리(__SHIELDMAIL_DEV__ 빌드 상수), diag 페이지 dev-public/ 분리, HIGH-1 HMAC race fix (Map+Promise 캐시)
+- **R12** (2026-04-08) — 테스트 그린화 (288/288: worker 132 + ext 156) + macOS Safari Extension App 컨테이너: vitest 2.1 workspace 마이그레이션, ios-bridge/signals/forms/PrivacyFooter 회귀 fix, macos/ scaffold + Xcode 빌드 성공
