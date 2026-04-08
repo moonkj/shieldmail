@@ -21,7 +21,11 @@ export default defineConfig({
       input: {
         content: resolve(__dirname, "src/content/index.ts"),
         background: resolve(__dirname, "src/background/index.ts"),
-        popup: resolve(__dirname, "src/popup/index.html"),
+        // popup HTML at project root → outputs to dist/popup.html (root level).
+        // Safari Web Extension on iOS requires the popup HTML to be at the
+        // bundle root, not in a deep src/popup/ subdirectory, for module
+        // resolution to work correctly.
+        popup: resolve(__dirname, "popup.html"),
       },
       output: {
         entryFileNames: "[name].js",
