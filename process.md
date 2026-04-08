@@ -190,10 +190,21 @@
 모든 M4 핵심 산출물 완료:
 - SSE 고도화 (R7), 도메인 ×5 (R7), IndexedDB+WebCrypto (R7), O1 HTML 방어 (R8)
 
-### M5 잔여
-- 재현 빌드 해시 (package-lock / Cargo.lock 고정)
-- Mac/iOS 릴리즈 체크리스트
-- App Store 제출 준비
+### M5 잔여 → R9에서 완료
+
+## 2026-04-08 — R9: M5 완료
+
+### 커밋: `30878d1 feat(m5): reproducible builds + release checklist + MIT license`
+
+- **정확 버전 고정**: 양쪽 `package.json`에서 `^` 제거, 모든 deps exact 버전
+- **`.npmrc`**: `save-exact=true`, `engine-strict=true` (extension + worker)
+- **sourcemap 비활성화**: `vite.config.ts` `NODE_ENV=production` 시 sourcemap 미생성
+- **`docs/RELEASE_CHECKLIST.md`**: Worker 스모크테스트 · macOS 코드서명+공증 · iOS TestFlight · App Store 제출 · 오픈소스 태깅 5개 섹션
+- **`LICENSE`**: MIT
+- **`README.md`**: `npm ci` 재현 빌드 지시사항 보강
+
+### 전체 마일스톤 현황: M1 ✅ · M2 ✅ · M3 ✅ · M4 ✅ · M5 ✅
+잔여: O3 Turnstile (M6+ defer), 실제 배포 실행 (Xcode + wrangler)
 
 ## 2026-04-08 — R7: M4 SSE 고도화 + 도메인 ×5 + Managed Mode 기반 구축
 

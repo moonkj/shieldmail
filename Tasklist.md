@@ -20,8 +20,8 @@
 | **M2 Safari Extension (macOS)** | 6-agent team (R3) | ✅ 완료 | `extension/` 60+ files, `docs/UX_SPEC.md`, `assets/icons/` | R1→Debugger→R2→Test→Reviewer+lead hotfix |
 | **M4 SSE + 도메인 ×5 + Managed Mode 기반** | 리더 (R7) | ✅ 완료 | AliasChannel SSE 고도화, wrangler.toml 5도메인, crypto.ts/indexeddb.ts/migration.ts | commit 113443c |
 | 3. 성능·최적화 | Teammate 4 (Perf) | ✅ 완료 (R8) | O1 email size guard 완료, O3 defer, O4 rotation 완료 | — |
-| **M5 Wave 1** | 리더 (R8) | 🟡 진행중 | README.md 완성 | commit e1411a6 |
-| 4. 문서화 | Teammate 4 (Doc) | ⏳ 대기 | 재현 빌드 해시, Mac/iOS 릴리즈 체크리스트 | M5 잔여 |
+| **M5** | 리더 (R8+R9) | ✅ 완료 | README.md · RELEASE_CHECKLIST.md · MIT LICENSE · 정확 버전 고정 · sourcemap 비활성화 | commit 30878d1 |
+| 4. 문서화 | Doc | ✅ 완료 | README + Privacy Policy + App Store Notes + Release Checklist | — |
 | **M3 iOS Safari Extension** | 6-agent team (R5) | ✅ 완료 | `ios/` Swift container + iOS floating button TS | Wave 1-6 완료 (Debugger BLOCKER 2건 + Reviewer MAJOR 1건 수정) |
 
 범례: ⏳ 대기 / 🟡 진행중 / ✅ 완료 / 🔁 복귀 / ⚠️ 블로커
@@ -122,3 +122,5 @@
 - **R5** (2026-04-08) — M3 iOS Safari Extension 구현: Swift container + iOS floating button + Keychain + 테스트 완료
 - **R6** (2026-04-08) — O2 App Store 리젝 리스크 해소: PrivacyInfo.xcprivacy + Review Notes + Privacy Policy
 - **R7** (2026-04-08) — M4 SSE 고도화 + 도메인 ×5 + Managed Mode crypto/IndexedDB/migration 기반 구축
+- **R8** (2026-04-08) — O1 email size guard, O3 defer, O4 완료 처리, README.md
+- **R9** (2026-04-08) — M5 완료: 정확 버전 고정, .npmrc, sourcemap 비활성화, RELEASE_CHECKLIST.md, MIT LICENSE
