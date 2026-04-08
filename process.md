@@ -166,6 +166,35 @@
 - **M4** — SSE/WS 마이그레이션 + 도메인 로테이션 2→5개 + Managed Mode 고도화
 - **Xcode 프로젝트 생성** — `brew install xcodegen && xcodegen generate`
 
+## 2026-04-08 — R8: M4 완료 + M5 Wave 1 착수
+
+### 리더 판단
+- O3 (Turnstile): **DEFER** — TokenBucket DO 충분, 개발자 타겟 MVP에 마찰 불필요
+- O4 (도메인 자동화): **완료 처리** — `pickDomain()` 랜덤 rotation = 핵심 요건 충족
+- O1 (대용량 HTML): **즉시 처리** — 배포 전 필수 방어
+
+### 커밋: `e1411a6 feat(m4/m5): O1 email size guard + M5 README`
+
+#### O1 — email.ts 크기 방어
+- `MAX_HTML_CHARS = 200_000` / `MAX_TEXT_CHARS = 50_000` 상수 추가
+- `parsed.html/text` → `slice()` 후 `htmlToText` 및 `extractLinks` 에 전달
+- 트랜잭션 메일은 코드/링크가 상단에 위치하므로 truncate 시 정보 손실 없음
+
+#### M5 Wave 1 — README.md
+- Worker 배포 가이드 (KV 설정, wrangler.toml, Email Routing catch-all, secret)
+- macOS Safari 확장 빌드 + 개발자 로드 방법
+- iOS Safari 확장 XcodeGen → Xcode 빌드 방법
+- 프라이버시 요약 + ARCHITECTURE/PRIVACY_POLICY 링크
+
+### M4 최종 상태: ✅ 완료
+모든 M4 핵심 산출물 완료:
+- SSE 고도화 (R7), 도메인 ×5 (R7), IndexedDB+WebCrypto (R7), O1 HTML 방어 (R8)
+
+### M5 잔여
+- 재현 빌드 해시 (package-lock / Cargo.lock 고정)
+- Mac/iOS 릴리즈 체크리스트
+- App Store 제출 준비
+
 ## 2026-04-08 — R7: M4 SSE 고도화 + 도메인 ×5 + Managed Mode 기반 구축
 
 ### 커밋: `113443c feat(m4): SSE hardening, domain pool ×5, Managed Mode crypto + IndexedDB`

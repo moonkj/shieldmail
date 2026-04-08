@@ -19,8 +19,9 @@
 | **M1 Worker API + Email Worker** | Coder/Debugger/Test/Reviewer | ✅ 완료 (R2) | `workers/email-router/` 18 src + 118 tests | R1→R2→R3→R2-review 품질 사이클 |
 | **M2 Safari Extension (macOS)** | 6-agent team (R3) | ✅ 완료 | `extension/` 60+ files, `docs/UX_SPEC.md`, `assets/icons/` | R1→Debugger→R2→Test→Reviewer+lead hotfix |
 | **M4 SSE + 도메인 ×5 + Managed Mode 기반** | 리더 (R7) | ✅ 완료 | AliasChannel SSE 고도화, wrangler.toml 5도메인, crypto.ts/indexeddb.ts/migration.ts | commit 113443c |
-| 3. 성능·최적화 | Teammate 4 (Perf) | ⏳ 대기 | O1(HTML), O3(Turnstile), O4(도메인 자동화) 잔여 | 요청시 |
-| 4. 문서화 | Teammate 4 (Doc) | ⏳ 대기 | README, privacy policy, install guide | M5 릴리즈 전 |
+| 3. 성능·최적화 | Teammate 4 (Perf) | ✅ 완료 (R8) | O1 email size guard 완료, O3 defer, O4 rotation 완료 | — |
+| **M5 Wave 1** | 리더 (R8) | 🟡 진행중 | README.md 완성 | commit e1411a6 |
+| 4. 문서화 | Teammate 4 (Doc) | ⏳ 대기 | 재현 빌드 해시, Mac/iOS 릴리즈 체크리스트 | M5 잔여 |
 | **M3 iOS Safari Extension** | 6-agent team (R5) | ✅ 완료 | `ios/` Swift container + iOS floating button TS | Wave 1-6 완료 (Debugger BLOCKER 2건 + Reviewer MAJOR 1건 수정) |
 
 범례: ⏳ 대기 / 🟡 진행중 / ✅ 완료 / 🔁 복귀 / ⚠️ 블로커
@@ -98,10 +99,10 @@
 
 | # | 이슈 | 마일스톤 | 상태 |
 |---|---|---|---|
-| O1 | Email Worker CPU/메모리 대용량 HTML | M4 | 대기 |
+| O1 | Email Worker CPU/메모리 대용량 HTML | M4 | ✅ 완료 (R8) — HTML 200KB / text 50KB truncate |
 | O2 | App Store 심사 `<all_urls>` 리젝 리스크 | M5 | ✅ 완료 (R6) — Privacy manifest + Review Notes + Privacy Policy |
-| O3 | Rate limit Turnstile 삽입 | M4 | 대기 |
-| O4 | 도메인 로테이션 자동화 | M4 | 대기 |
+| O3 | Rate limit Turnstile 삽입 | M6+ | ⏳ DEFER — TokenBucket으로 충분, 개발자 마찰 불필요 |
+| O4 | 도메인 로테이션 자동화 | M4 | ✅ 완료 — pickDomain() 랜덤 rotation = 기본 자동화 완족. KV 차단 추적은 실사용 데이터 후 검토 |
 | O5 | Alias 충돌 확률 증명 | M3 전 | ✅ 완료 (R4) — 10자→14자 확대 + 재시도 로직 적용 |
 | HIGH-1 (M1) | HMAC key 캐시 race (secret rotation) | M5 | TODO |
 | MED-1/2 (M1) | SSE dedup + replay race | M4 | ✅ 완료 (R7) — Last-Event-ID + reconnect-race fix |
