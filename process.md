@@ -306,3 +306,46 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 ### 다음 단계
 - **옵션 B**: 실제 Cloudflare Worker 배포 (KV 생성, HMAC_KEY secret, Email Routing catch-all 5개 도메인, `wrangler deploy`)
 - 옵션 C: A + B 모두
+
+## 2026-04-08 — R11: Cloudflare Worker 배포 + production hardening
+
+### B 트랙 (Worker 실배포)
+- ALIAS_KV 네임스페이스 생성: `996d9716e4774458994c57c281d99f1a` (prod) + `fe0a2777f04b4a548f7b2b3f068d9b97` (preview)
+- HMAC_KEY 32-byte hex secret 등록
+- `wrangler.toml`: KV ID 교체, `new_classes` → `new_sqlite_classes` (free plan 요건), `[[email]]` 바인딩 임시 disable (도메인 등록 후 활성)
+- `package.json`: `vitest 1.6.1` → `2.1.9`, `vitest-pool-workers 0.14.2` → `0.5.5` (peer dep 호환)
+- **`wrangler deploy` 성공**: `https://shieldmail-email-router.relink-app.workers.dev`
+- 스모크 테스트:
+  - `POST /alias/generate` → 200 `{aliasId, address: ...@d2.shld.me, pollToken}`
+  - `GET /alias/{id}/messages` → 200 `{messages:[], expired:false}`
+- `extension/src/lib/types.ts` `DEFAULT_SETTINGS.apiBaseUrl` → 실제 Worker URL
+- 커밋: `30c81eb feat(deploy): Cloudflare Worker deployed to workers.dev`
+
+### Production hardening (사용자 액션 불필요)
+- `.gitignore`: `ios/*.xcodeproj/` 명시 (xcodegen 산출물)
+- `extension/dev-public/` 신규: `diag-popup.html`, `real-popup-test.html` 등 진단 페이지 이동
+- `vite.config.ts`:
+  - `devPublicCopy` plugin: production 빌드에서 `dev-public/` 자동 제외
+  - `define.__SHIELDMAIL_DEV__`: `process.env.NODE_ENV === "production" ? "false" : "true"` 빌드 상수
+- `extension/src/global.d.ts` 신규: `__SHIELDMAIL_DEV__` 타입 선언
+- `popup/MainScreen.tsx`: demo fallback `if (!__SHIELDMAIL_DEV__) return` 가드 → production은 `network_unavailable`/`unknown` 에러로 surface
+- `background/handlers.ts`: `makeDemoAlias()` 호출도 `__SHIELDMAIL_DEV__`로 가드, production에서 dead code
+- `package.json` scripts: `build` (production) / `build:dev` (dev) 분리, `NODE_ENV` 명시
+- 검증:
+  - production 빌드: popup.js 33KB, demo refs 0개, dist에 diag 파일 0개
+  - dev 빌드: popup.js 52KB, demo path 포함, dist에 diag 파일 6개
+- 커밋: `c1d7f8a chore: production hardening — gate dev fallbacks + diag tools, fix HMAC race`
+
+### HIGH-1 (M1 백로그) HMAC key 캐시 race 수정
+- 기존: 단일 `cachedKey` + `cachedKeyMaterial` 쌍 → secret 회전 시 동시 호출이 race 가능
+- 수정: `Map<secret, Promise<CryptoKey>>` — Promise 캐싱으로 동일 secret 동시 import 합치기, 다른 secret은 별도 entry로 공존, `KEY_CACHE_MAX = 8` 캡, 실패 시 evict
+- 위치: `workers/email-router/src/lib/hash.ts`
+
+### 사용자 액션 대기 (B 트랙 잔여)
+- B4: shld.me 또는 다른 도메인 Cloudflare 등록 (네임서버 변경)
+- B6: `api.shld.me/*` Worker 라우트 (도메인 등록 후)
+- B8: 실 메일 수신 검증 (B4 + B6 후)
+
+### 다음 코딩 트랙
+- D1~D3: macOS Safari Extension App 빌드/서명 (별도 트랙)
+- M5 잔여: App Store 제출 자동화 가능한 부분

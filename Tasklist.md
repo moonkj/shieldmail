@@ -104,7 +104,7 @@
 | O3 | Rate limit Turnstile 삽입 | M6+ | ⏳ DEFER — TokenBucket으로 충분, 개발자 마찰 불필요 |
 | O4 | 도메인 로테이션 자동화 | M4 | ✅ 완료 — pickDomain() 랜덤 rotation = 기본 자동화 완족. KV 차단 추적은 실사용 데이터 후 검토 |
 | O5 | Alias 충돌 확률 증명 | M3 전 | ✅ 완료 (R4) — 10자→14자 확대 + 재시도 로직 적용 |
-| HIGH-1 (M1) | HMAC key 캐시 race (secret rotation) | M5 | TODO |
+| HIGH-1 (M1) | HMAC key 캐시 race (secret rotation) | M5 | ✅ 완료 (R11) — Map+Promise 캐시, 회전 안전 |
 | MED-1/2 (M1) | SSE dedup + replay race | M4 | ✅ 완료 (R7) — Last-Event-ID + reconnect-race fix |
 | M2-bk1 | injector shortcutLabel 플랫폼 분기 | M3 전 | ✅ 완료 (R4) |
 | M2-bk2 | PrivacyFooter 음수 TTL interval clear | M3 전 | ✅ 완료 (R4) |
@@ -125,3 +125,4 @@
 - **R8** (2026-04-08) — O1 email size guard, O3 defer, O4 완료 처리, README.md
 - **R9** (2026-04-08) — M5 완료: 정확 버전 고정, .npmrc, sourcemap 비활성화, RELEASE_CHECKLIST.md, MIT LICENSE
 - **R10** (2026-04-08) — iPhone Air 실기 설치 사이클: iOS Safari 19/Xcode 26 호환 fix 다수, popup 빈 화면 7단계 누적 디버그(절대→상대 경로, root entry, crossorigin 제거, IIFE, JSX→Preact, defer), Demo Mode 검증 완료. 6 병렬 에이전트 2차 (리서치+분석+진단)
+- **R11** (2026-04-08) — Cloudflare Worker 실배포 (workers.dev) + production hardening: KV 생성, HMAC_KEY secret, sqlite DO migration, demo fallback dev 분리(__SHIELDMAIL_DEV__ 빌드 상수), diag 페이지 dev-public/ 분리, HIGH-1 HMAC race fix (Map+Promise 캐시)
