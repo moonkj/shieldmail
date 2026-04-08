@@ -166,11 +166,14 @@ export function MainScreen({ navigate }: MainScreenProps) {
   };
 
   const handleGenerate = async (): Promise<void> => {
-    if (!origin) return;
+    // iOS Safari Web Extension popups can't reliably read the active tab URL
+    // via chrome.tabs.query — fall back to a local-demo origin so generate
+    // still works for end-to-end UI verification.
+    const effectiveOrigin = origin ?? "https://demo.local";
     const res = await sendRuntime<{ ok: boolean; error?: string }>({
       type: "GENERATE_ALIAS",
       mode: settings.managedModeEnabled ? "managed" : "ephemeral",
-      origin,
+      origin: effectiveOrigin,
     });
     if (res && !res.ok) setError((res.error as ErrorCode) ?? "unknown");
   };

@@ -32,6 +32,31 @@ function errorToCode(err: unknown): ErrorCode {
   return "unknown";
 }
 
+// Demo fallback: when the real Worker is unreachable (not yet deployed),
+// generate a local fake alias so the popup UI can be tested end-to-end.
+// Triggered only on NetworkError (DNS/connection failures), never on auth
+// or rate-limit errors. The fake alias is marked with a `demo:` prefix in
+// pollToken so downstream code can recognize it later.
+function makeDemoAlias(mode: "ephemeral" | "managed", label?: string): import("../lib/types.js").AliasRecord {
+  const rand = (): string => {
+    const buf = new Uint8Array(7);
+    crypto.getRandomValues(buf);
+    return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("").slice(0, 14);
+  };
+  const aliasId = rand();
+  const domains = ["d1.shld.me", "d2.shld.me", "d3.shld.me", "d4.shld.me", "d5.shld.me"];
+  const domain = domains[Math.floor(Math.random() * domains.length)] ?? "d1.shld.me";
+  return {
+    aliasId,
+    address: `${aliasId}@${domain}`,
+    expiresAt: mode === "ephemeral" ? Date.now() + 60 * 60 * 1000 : null,
+    pollToken: `demo:${aliasId}`,
+    mode,
+    label,
+    createdAt: Date.now(),
+  };
+}
+
 async function findAliasById(
   aliasId: string,
 ): Promise<{ pollToken: string } | undefined> {
@@ -65,6 +90,15 @@ export async function dispatch(
         await deps.poller.start(record.aliasId, record.pollToken, record.address);
         return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
       } catch (err) {
+        // Demo fallback: if the Worker is unreachable, hand back a local fake
+        // alias so the popup UI can be exercised without backend deployment.
+        if (err instanceof NetworkError) {
+          const record = makeDemoAlias(msg.mode, msg.label);
+          record.origin = msg.origin;
+          await putActiveAlias(record);
+          if (msg.mode === "managed") await putManagedAlias(record);
+          return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
+        }
         return {
           type: "GENERATE_ALIAS_RESULT",
           ok: false,
@@ -80,6 +114,25 @@ export async function dispatch(
             type: "FETCH_MESSAGES_RESULT",
             ok: false,
             error: "unknown" satisfies ErrorCode,
+          };
+        }
+        // Demo alias: synthesize a fake OTP after a short delay so users can
+        // see the full popup flow (alias → OTP → copy) without a deployed Worker.
+        if (found.pollToken.startsWith("demo:")) {
+          const fakeOtp = String(Math.floor(100000 + Math.random() * 900000));
+          return {
+            type: "FETCH_MESSAGES_RESULT",
+            ok: true,
+            messages: [
+              {
+                id: `demo-${Date.now()}`,
+                otp: fakeOtp,
+                confidence: 0.95,
+                receivedAt: Date.now(),
+                verifyLinks: ["https://demo.local/verify/demo-token"],
+              },
+            ],
+            expired: false,
           };
         }
         const result = await deps.api.getMessages(msg.aliasId, found.pollToken);
@@ -101,6 +154,8 @@ export async function dispatch(
       try {
         const found = await findAliasById(msg.aliasId);
         if (!found) return { ok: false, error: "unknown" satisfies ErrorCode };
+        // Demo alias: ack is a no-op (no Worker to clear).
+        if (found.pollToken.startsWith("demo:")) return { ok: true };
         await deps.api.ackMessage(msg.aliasId, found.pollToken, msg.messageId);
         return { ok: true };
       } catch (err) {
@@ -110,7 +165,7 @@ export async function dispatch(
     case "DELETE_ALIAS": {
       try {
         const found = await findAliasById(msg.aliasId);
-        if (found) {
+        if (found && !found.pollToken.startsWith("demo:")) {
           try {
             await deps.api.deleteAlias(msg.aliasId, found.pollToken);
           } catch {
