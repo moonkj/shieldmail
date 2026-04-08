@@ -148,8 +148,11 @@ export class IOSFloatingButtonInjector {
   private mount(): void {
     const host = document.createElement("div");
     host.setAttribute("data-shieldmail-ios", "");
+    // right is set statically — position:fixed is already relative to the
+    // visual viewport, so no per-frame adjustment for iPad split view needed.
     host.style.cssText = `
       position: fixed;
+      right: ${BUTTON_RIGHT_OFFSET}px;
       z-index: 2147483600;
       pointer-events: none;
     `;
@@ -216,16 +219,20 @@ export class IOSFloatingButtonInjector {
   private updatePosition(): void {
     if (!this.host) return;
     const vp = window.visualViewport;
+
+    // `position: fixed` is always relative to the visual viewport, so
+    // `right` is a constant CSS value — no vpOffsetX correction needed.
+    // Only `bottom` needs to be adjusted dynamically to stay above the keyboard.
     const vpHeight  = vp ? vp.height  : window.innerHeight;
     const vpOffsetY = vp ? vp.offsetTop : 0;
-    const vpOffsetX = vp ? vp.offsetLeft : 0;
 
-    // Bottom of visible viewport (above keyboard)
-    const bottom = window.innerHeight - vpHeight - vpOffsetY + BUTTON_BOTTOM_MARGIN;
-    const right  = BUTTON_RIGHT_OFFSET - vpOffsetX;
+    // Distance from bottom of layout viewport to top of visual viewport.
+    // When keyboard is hidden: vpHeight ≈ innerHeight → keyboardOffset ≈ 0.
+    // When keyboard is visible: vpHeight < innerHeight → keyboardOffset > 0.
+    const keyboardOffset = Math.max(0, window.innerHeight - vpHeight - vpOffsetY);
 
-    this.host.style.bottom = `${Math.max(BUTTON_BOTTOM_MARGIN, bottom + BUTTON_BOTTOM_MARGIN)}px`;
-    this.host.style.right  = `${Math.max(BUTTON_RIGHT_OFFSET, right)}px`;
+    this.host.style.bottom = `${keyboardOffset + BUTTON_BOTTOM_MARGIN}px`;
+    // right is set once in mount() via CSS; no update needed here.
   }
 
   private setVisible(visible: boolean): void {

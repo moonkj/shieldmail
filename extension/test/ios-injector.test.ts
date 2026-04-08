@@ -275,12 +275,136 @@ describe("IOSFloatingButtonInjector", () => {
     expect(isForce({})).toBe(false);
   });
 
-  // ── ios-bridge: loadToken timeout ─────────────────────────────
+  // ── ios-bridge: loadToken returns null without safari context ──
 
-  it("loadToken resolves null on timeout when not in safari context", async () => {
+  it("loadToken resolves null immediately without safari context", async () => {
     // isSafariExtensionContext returns false (mocked above)
     const { loadToken } = await import("../src/content/ios-bridge");
     const result = await loadToken("some-alias-id");
     expect(result).toBeNull();
+  });
+});
+
+// ── Position update: visualViewport null fallback ─────────────────
+
+describe("IOSFloatingButtonInjector — position with null visualViewport", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
+  });
+
+  it("does not throw when window.visualViewport is null", () => {
+    const origVp = window.visualViewport;
+    Object.defineProperty(window, "visualViewport", { value: null, configurable: true });
+
+    const { injector } = (() => {
+      const inj = new IOSFloatingButtonInjector({
+        getMode: () => "ephemeral",
+        getCurrentInput: () => null,
+      });
+      return { injector: inj };
+    })();
+
+    expect(() => injector.show()).not.toThrow();
+    Object.defineProperty(window, "visualViewport", { value: origVp, configurable: true });
+  });
+
+  it("sets bottom >= BUTTON_BOTTOM_MARGIN (8px) even without visualViewport", () => {
+    const origVp = window.visualViewport;
+    Object.defineProperty(window, "visualViewport", { value: null, configurable: true });
+
+    const inj = new IOSFloatingButtonInjector({
+      getMode: () => "ephemeral",
+      getCurrentInput: () => null,
+    });
+    inj.show();
+
+    const host = document.querySelector<HTMLDivElement>("[data-shieldmail-ios]");
+    const bottom = parseFloat(host?.style.bottom ?? "0");
+    expect(bottom).toBeGreaterThanOrEqual(8);
+
+    Object.defineProperty(window, "visualViewport", { value: origVp, configurable: true });
+  });
+});
+
+// ── Done → hidden transition timing ──────────────────────────────
+
+describe("IOSFloatingButtonInjector — done→hidden timing", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
+  });
+
+  it("transitions to hidden state after 1200ms done + 300ms fade", async () => {
+    vi.useFakeTimers();
+    vi.mocked(sendMessage).mockResolvedValueOnce({
+      type: "GENERATE_ALIAS_RESULT",
+      ok: true,
+      record: { aliasId: "done12345678901", address: "done12345678901@d.shld.me" },
+    });
+
+    const inj = new IOSFloatingButtonInjector({
+      getMode: () => "ephemeral",
+      getCurrentInput: () => null,
+    });
+    inj.show();
+
+    const host = document.querySelector<HTMLDivElement>("[data-shieldmail-ios]")!;
+    let btn: HTMLButtonElement | null = null;
+    for (const el of document.querySelectorAll("[data-shieldmail-ios]")) {
+      const b = el.shadowRoot?.querySelector<HTMLButtonElement>(".shield-btn");
+      if (b) { btn = b; break; }
+    }
+
+    btn!.click();
+    await vi.waitFor(() => expect(btn!.getAttribute("data-state")).toBe("done"));
+
+    // Before 1200ms
+    vi.advanceTimersByTime(1100);
+    expect(btn!.getAttribute("data-state")).toBe("done");
+
+    // After 1200ms (fade starts)
+    vi.advanceTimersByTime(100);
+
+    // After additional 300ms fade-out
+    vi.advanceTimersByTime(300);
+    expect(btn!.getAttribute("data-state")).toBe("hidden");
+  });
+});
+
+// ── Error → default recovery timing ──────────────────────────────
+
+describe("IOSFloatingButtonInjector — error recovery at exactly 2000ms", () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => {
+    vi.useRealTimers();
+    document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
+  });
+
+  it("stays in error before 2000ms, recovers at 2000ms", async () => {
+    vi.useFakeTimers();
+    vi.mocked(sendMessage).mockResolvedValueOnce({ ok: false, error: "fail" });
+
+    const inj = new IOSFloatingButtonInjector({
+      getMode: () => "ephemeral",
+      getCurrentInput: () => null,
+    });
+    inj.show();
+
+    let btn: HTMLButtonElement | null = null;
+    for (const el of document.querySelectorAll("[data-shieldmail-ios]")) {
+      const b = el.shadowRoot?.querySelector<HTMLButtonElement>(".shield-btn");
+      if (b) { btn = b; break; }
+    }
+
+    btn!.click();
+    await vi.waitFor(() => expect(btn!.getAttribute("data-state")).toBe("error"));
+
+    vi.advanceTimersByTime(1999);
+    expect(btn!.getAttribute("data-state")).toBe("error");
+
+    vi.advanceTimersByTime(1);
+    expect(btn!.getAttribute("data-state")).toBe("default");
   });
 });

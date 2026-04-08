@@ -119,7 +119,29 @@
 - `extension/src/content/index.ts` — iOS/macOS 분기 추가, focusin 이벤트 리스너 (iOS path)
 - Keychain Access Group `me.shld.shieldmail` — App + Extension 공유
 
-### 다음 단계
-- Wave 4: Debugger — 교차 레이어 계약 검증 (JS ↔ Swift 메시지 shape, Keychain 읽기/쓰기 경계)
-- Wave 5: Test Engineer — Xcode UI Test + TypeScript 추가 테스트
-- Wave 6: Reviewer — M3 최종 검토
+### Wave 4: Debugger — BLOCKER 2건 + HIGH 1건 수정
+- BLOCKER-1: `ios-bridge.ts loadToken` — `document.addEventListener` → `chrome.runtime.onMessage`로 교체 (Safari `dispatchMessageToScript` 채널 수정)
+- BLOCKER-2: `index.ts iOS FORCE_INJECT` — `{ type: "FORCE_INJECT" }` + `{ name: "FORCE_INJECT" }` 양쪽 shape 허용
+- HIGH: `SafariExtensionHandler.swift storeAliases` — `storeRecentAliases(aliases)` → `appendRecentAlias(first)` 교정
+
+### Wave 5: Test Engineer — 테스트 3파일 추가
+- `test/ios-platform.test.ts` — isIOS() 로직 14 cases (iPhone/iPad/iPadOS/macOS/boundary)
+- `test/ios-bridge.test.ts` — ios-bridge.ts 전체 커버 (haptic/storeToken/appendRecentAlias/loadToken)
+- `test/ios-injector.test.ts` 추가 케이스 — position null fallback, done→hidden 1200ms, error→default 2000ms
+
+### Wave 6: Reviewer — ✅ M3 최종 승인 (보완 후 재승인)
+- 점수: 기능 4.5/5, 프라이버시 5/5, 안정성 4/5, iOS 호환 4.5/5, macOS 영향 5/5
+- Reviewer MAJOR: iPad split view `position:fixed` right offset 수정
+  - `right` 정적 CSS (`12px`) 고정 — `position:fixed`는 이미 visual viewport 기준
+  - `bottom`만 `keyboardOffset + 8px` 동적 계산으로 단순화
+
+### R5 최종 산출물
+- `ios/` — 8 Swift 파일 (App 4 + Extension 4) + `project.yml`
+- `extension/src/content/ios-bridge.ts`, `ios-injector.ts` — iOS 전용 TypeScript
+- `extension/src/content/index.ts` — iOS/macOS 분기
+- `extension/test/ios-platform.test.ts`, `ios-bridge.test.ts`, `ios-injector.test.ts` 보강
+
+### 다음 단계 후보
+1. **M4** — Managed Mode 고도화, SSE/WS 마이그레이션, 도메인 로테이션 2→5개
+2. **M2 BLOCKER 잔여** — O2 App Store `<all_urls>` 리젝 리스크 Privacy note 초안
+3. **Xcode 프로젝트 생성** — `brew install xcodegen && xcodegen generate` 실행 필요

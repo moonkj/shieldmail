@@ -20,7 +20,7 @@
 | **M2 Safari Extension (macOS)** | 6-agent team (R3) | ✅ 완료 | `extension/` 60+ files, `docs/UX_SPEC.md`, `assets/icons/` | R1→Debugger→R2→Test→Reviewer+lead hotfix |
 | 3. 성능·최적화 | Teammate 4 (Perf) | ⏳ 대기 | M4에서 SSE/WS 마이그레이션, polling 튜닝 | 요청시 |
 | 4. 문서화 | Teammate 4 (Doc) | ⏳ 대기 | README, privacy policy, install guide | M5 릴리즈 전 |
-| **M3 iOS Safari Extension** | 6-agent team (R5) | 🟡 진행중 | `ios/` Swift container + iOS floating button TS | Wave 1-3 완료, Wave 4(Debugger) 대기 |
+| **M3 iOS Safari Extension** | 6-agent team (R5) | ✅ 완료 | `ios/` Swift container + iOS floating button TS | Wave 1-6 완료 (Debugger BLOCKER 2건 + Reviewer MAJOR 1건 수정) |
 
 범례: ⏳ 대기 / 🟡 진행중 / ✅ 완료 / 🔁 복귀 / ⚠️ 블로커
 
