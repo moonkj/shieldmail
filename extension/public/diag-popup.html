@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>ShieldMail Diag</title>
+  <style>
+    body { font: 13px -apple-system, sans-serif; margin: 12px; width: 320px; background: #111; color: #eee; }
+    h2 { margin: 0 0 8px; font-size: 14px; }
+    .row { padding: 6px 8px; margin: 4px 0; border-radius: 4px; background: #222; border-left: 4px solid #555; }
+    .ok { background: #0a3d1f; border-left-color: #00ff66; color: #b8ffcb; }
+    .fail { background: #4d0a0a; border-left-color: #ff3030; color: #ffb8b8; }
+    .lbl { font-weight: 600; }
+    .msg { font-family: ui-monospace, monospace; font-size: 11px; margin-top: 2px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h2>ShieldMail Popup Diagnostic</h2>
+  <div id="s1" class="row ok"><span class="lbl">1. HTML loaded</span><div class="msg">static text visible = OK</div></div>
+  <div id="s2" class="row"><span class="lbl">2. classic script</span><div class="msg">waiting...</div></div>
+  <div id="s3" class="row"><span class="lbl">3. module script</span><div class="msg">waiting...</div></div>
+  <div id="s4" class="row"><span class="lbl">4. module static import</span><div class="msg">waiting...</div></div>
+  <div id="s5" class="row"><span class="lbl">5. preact import</span><div class="msg">waiting...</div></div>
+  <div id="s6" class="row"><span class="lbl">6. document.getElementById in module</span><div class="msg">waiting...</div></div>
+  <div id="s7" class="row"><span class="lbl">7. chrome.storage.local.get</span><div class="msg">waiting...</div></div>
+  <script src="diag-classic.js"></script>
+  <script type="module" src="diag-module.js"></script>
+</body>
+</html>

@@ -36,11 +36,9 @@ export default defineConfig({
       input: {
         content: resolve(__dirname, "src/content/index.ts"),
         background: resolve(__dirname, "src/background/index.ts"),
-        // popup HTML at project root → outputs to dist/popup.html (root level).
-        // Safari Web Extension on iOS requires the popup HTML to be at the
-        // bundle root, not in a deep src/popup/ subdirectory, for module
-        // resolution to work correctly.
-        popup: resolve(__dirname, "popup.html"),
+        // popup is built separately by vite.popup.config.ts as IIFE format.
+        // iOS Safari Web Extension popups break on <script type="module">
+        // with sibling chunks — see ARCHITECTURE.md and vite.popup.config.ts.
       },
       output: {
         entryFileNames: "[name].js",
