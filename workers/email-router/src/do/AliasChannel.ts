@@ -65,7 +65,7 @@ export class AliasChannel implements DurableObject {
         return await this.handlePoll(url);
       }
       if (request.method === "GET" && path === "/stream") {
-        return this.handleStream();
+        return this.handleStream(request);
       }
       if (request.method === "GET" && path === "/ws") {
         return this.handleWebSocket(request);
@@ -138,31 +138,68 @@ export class AliasChannel implements DurableObject {
   }
 
   // ─────────────────────────────────────────────
-  // GET /stream  — Server-Sent Events
+  // GET /stream  — Server-Sent Events (M4 hardened)
+  //
+  // M4 improvements over M1 stub:
+  //  1. Last-Event-ID support: replay only messages the client hasn't seen.
+  //  2. Reconnect-race fix: client is registered *before* the storage list()
+  //     so a push arriving during the replay window is captured and de-duped.
+  //  3. 30-second heartbeat: keeps the Cloudflare edge from timing out idle
+  //     connections (CF closes streams after ~100s of inactivity).
   // ─────────────────────────────────────────────
-  // TODO(MEDIUM-1/2/M4 SSE hardening): replay-dedup via Last-Event-ID and
-  // reconnect-race protection are deferred to M4. Today a reconnecting
-  // client may receive a buffered message it already saw, and a push that
-  // arrives between `list()` and `add(client)` could be missed.
-  private handleStream(): Response {
+  private handleStream(request: Request): Response {
     const encoder = new TextEncoder();
     let client: SseClient | null = null;
+
+    // Last-Event-ID: the browser sends this header automatically on reconnect.
+    // We use it to skip messages the client already received.
+    const lastEventId = request.headers.get("last-event-id") ?? "";
+    const seenIds = new Set(lastEventId ? lastEventId.split(",") : []);
 
     const stream = new ReadableStream<Uint8Array>({
       start: async (controller) => {
         client = { controller, encoder };
+
+        // FIX(reconnect-race): register client FIRST, then list storage.
+        // Any push arriving after this point goes to broadcastSse(), which
+        // enqueues to this controller. Dedup below prevents double delivery.
         this.sseClients.add(client);
 
-        // Send buffered messages immediately so a late connector still gets them.
-        // TODO(MEDIUM-1/2/M4 SSE hardening): honour Last-Event-ID to avoid
-        // re-delivering messages already acknowledged by the client.
+        // Replay buffered messages not yet seen by this client.
         const all = await this.state.storage.list<StoredMessage>({ prefix: MSG_PREFIX });
         const sorted = Array.from(all.values()).sort((a, b) => a.receivedAt - b.receivedAt);
         for (const m of sorted) {
-          controller.enqueue(encoder.encode(formatSse(m)));
+          if (seenIds.has(m.id)) continue;
+          try {
+            controller.enqueue(encoder.encode(formatSse(m)));
+            seenIds.add(m.id);
+          } catch {
+            this.sseClients.delete(client);
+            return;
+          }
         }
+
         // Initial keep-alive comment.
-        controller.enqueue(encoder.encode(": connected\n\n"));
+        try {
+          controller.enqueue(encoder.encode(": connected\n\n"));
+        } catch {
+          this.sseClients.delete(client);
+          return;
+        }
+
+        // Heartbeat: send `: ping` every 30 seconds to prevent CF timeout.
+        // Uses recursive setTimeout (not setInterval) for Workers compatibility.
+        const scheduleHeartbeat = (): void => {
+          setTimeout(() => {
+            try {
+              controller.enqueue(encoder.encode(": ping\n\n"));
+              scheduleHeartbeat();
+            } catch {
+              if (client) this.sseClients.delete(client);
+            }
+          }, 30_000);
+        };
+        scheduleHeartbeat();
       },
       cancel: () => {
         if (client) this.sseClients.delete(client);

@@ -7,7 +7,9 @@ import { BackgroundPoller } from "./poller.js";
 import { dispatch, type HandlerDeps } from "./handlers.js";
 import { getSettings, initSettingsIfAbsent } from "./storage.js";
 import { registerNotificationClickHandler } from "./notify.js";
+import { migrateToIndexedDb } from "./migration.js";
 import { isRuntimeMessage, sendToTab } from "../lib/messaging.js";
+import type { ExtRuntimeMessage } from "../lib/messaging.js";
 import type { RuntimeMessage } from "../lib/types.js";
 import { DEFAULT_SETTINGS } from "../lib/types.js";
 
@@ -28,6 +30,10 @@ chrome.runtime.onInstalled.addListener((details) => {
     await initSettingsIfAbsent();
     // Single allowed debug line per spec.
     console.log("[shieldmail] installed", details.reason);
+    // Lazy migration: move managed aliases to IndexedDB on update.
+    if (details.reason === "update") {
+      try { await migrateToIndexedDb(); } catch { /* non-fatal */ }
+    }
   })();
 });
 
@@ -46,6 +52,18 @@ const ASYNC_HANDLED = new Set<string>([
 chrome.runtime.onMessage.addListener((raw, _sender, sendResponse) => {
   if (!isRuntimeMessage(raw)) return false;
   const type = (raw as { type: string }).type;
+
+  // Fire-and-forget: SSE active/inactive — no response needed.
+  if (type === "SSE_ACTIVE" || type === "SSE_INACTIVE") {
+    const msg = raw as ExtRuntimeMessage;
+    const aliasId = (msg as { aliasId?: string }).aliasId;
+    if (aliasId) {
+      if (type === "SSE_ACTIVE") void poller.pauseForSse(aliasId);
+      else void poller.resumeFromSse(aliasId);
+    }
+    return false;
+  }
+
   if (!ASYNC_HANDLED.has(type)) return false;
   const msg = raw as RuntimeMessage;
   void (async () => {

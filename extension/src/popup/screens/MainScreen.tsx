@@ -14,7 +14,7 @@ import {
   useSettings,
 } from "../state/store.js";
 import { sendRuntime } from "../../lib/messaging.js";
-import type { ErrorCode } from "../../lib/messaging.js";
+import type { ErrorCode, SseActiveMessage, SseInactiveMessage } from "../../lib/messaging.js";
 import type { AliasRecord, ExtractedMessage, RuntimeMessage } from "../../lib/types.js";
 import type { Screen } from "../App.js";
 
@@ -80,6 +80,72 @@ export function MainScreen({ navigate }: MainScreenProps) {
       }
     });
   }, []);
+
+  // SSE direct connection to DO /stream endpoint.
+  // While connected: background alarm poller is paused (SSE_ACTIVE).
+  // On close/error: background polling resumes (SSE_INACTIVE).
+  useEffect(() => {
+    if (!activeAlias) return;
+    const aliasId = activeAlias.aliasId;
+    const pollToken = activeAlias.pollToken;
+    // pollToken may be absent on legacy records — fall back to background polling.
+    if (!pollToken) return;
+
+    let es: EventSource | null = null;
+    let retryCount = 0;
+    const MAX_RETRIES = 5;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const connect = (): void => {
+      if (cancelled) return;
+      // Last-Event-ID is set automatically by EventSource on reconnect.
+      const base = settings.apiBaseUrl.replace(/\/$/, "");
+      const url = new URL(`${base}/alias/${aliasId}/stream`);
+      url.searchParams.set("token", pollToken);
+      es = new EventSource(url.toString());
+
+      es.addEventListener("open", () => {
+        retryCount = 0;
+        void sendRuntime<void>({ type: "SSE_ACTIVE", aliasId } as SseActiveMessage);
+      });
+
+      es.addEventListener("message", (e: MessageEvent<string>) => {
+        try {
+          const msg = JSON.parse(e.data) as ExtractedMessage;
+          if (!msg.id || !msg.receivedAt) return;
+          setMessages((prev) => {
+            const byId = new Map(prev.map((m) => [m.id, m]));
+            byId.set(msg.id, msg);
+            return [...byId.values()].sort((a, b) => b.receivedAt - a.receivedAt);
+          });
+          setError(null);
+        } catch { /* malformed frame — ignore */ }
+      });
+
+      es.addEventListener("error", () => {
+        es?.close();
+        es = null;
+        if (cancelled) return;
+        retryCount += 1;
+        if (retryCount > MAX_RETRIES) {
+          void sendRuntime<void>({ type: "SSE_INACTIVE", aliasId } as SseInactiveMessage);
+          return;
+        }
+        const delay = Math.min(30_000, 1_000 * Math.pow(2, retryCount - 1));
+        retryTimer = setTimeout(connect, delay);
+      });
+    };
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) clearTimeout(retryTimer);
+      es?.close();
+      void sendRuntime<void>({ type: "SSE_INACTIVE", aliasId } as SseInactiveMessage);
+    };
+  }, [activeAlias?.aliasId]);
 
   // CRITICAL: scrub in-memory OTP state on unmount.
   useEffect(() => {

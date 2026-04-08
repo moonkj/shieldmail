@@ -20,12 +20,33 @@ export interface PongMessage {
   type: "__SHIELDMAIL_PONG__";
 }
 
+/**
+ * Popup → background: popup has opened a direct SSE connection to the DO.
+ * Background should pause its chrome.alarms poller for this alias to avoid
+ * redundant polling while the popup handles real-time delivery.
+ */
+export interface SseActiveMessage {
+  type: "SSE_ACTIVE";
+  aliasId: string;
+}
+
+/**
+ * Popup → background: the popup's SSE connection has been closed or failed.
+ * Background should resume polling for this alias.
+ */
+export interface SseInactiveMessage {
+  type: "SSE_INACTIVE";
+  aliasId: string;
+}
+
 /** Extended union including internal messages not in the public types.ts. */
 export type ExtRuntimeMessage =
   | RuntimeMessage
   | ForceInjectMessage
   | PingMessage
-  | PongMessage;
+  | PongMessage
+  | SseActiveMessage
+  | SseInactiveMessage;
 
 /** Type guard helpers. */
 export function isRuntimeMessage(value: unknown): value is ExtRuntimeMessage {

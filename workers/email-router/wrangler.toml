@@ -39,7 +39,7 @@ new_classes = ["AliasChannel", "TokenBucket"]
 # Vars (non-secret)
 # ─────────────────────────────────────────────
 [vars]
-DOMAIN_POOL = "d1.shld.me"
+DOMAIN_POOL = "d1.shld.me,d2.shld.me,d3.shld.me,d4.shld.me,d5.shld.me"
 MESSAGE_TTL_MS = "600000"
 EPHEMERAL_ALIAS_TTL_SEC = "3600"
 POLL_TOKEN_TTL_SEC = "7200"

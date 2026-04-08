@@ -131,6 +131,24 @@ export class BackgroundPoller {
     }
   }
 
+  /** Pause polling while popup holds a direct SSE connection. */
+  async pauseForSse(aliasId: string): Promise<void> {
+    try { await chrome.alarms.clear(alarmName(aliasId)); } catch { /* ignore */ }
+    const t = this.timers.get(aliasId);
+    if (t) clearTimeout(t);
+    this.timers.delete(aliasId);
+  }
+
+  /** Resume alarm-based polling after SSE connection closes or fails. */
+  async resumeFromSse(aliasId: string): Promise<void> {
+    if (!this.active.has(aliasId)) return;
+    try { await chrome.alarms.clear(alarmName(aliasId)); } catch { /* ignore */ }
+    chrome.alarms.create(alarmName(aliasId), {
+      delayInMinutes: ALARM_DELAY_MIN,
+      periodInMinutes: ALARM_PERIOD_MIN,
+    });
+  }
+
   /** chrome.alarms dispatch target. Performs one poll iteration. */
   async onAlarm(aliasId: string): Promise<void> {
     await this.tick(aliasId);
