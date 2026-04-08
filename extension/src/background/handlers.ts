@@ -32,11 +32,11 @@ function errorToCode(err: unknown): ErrorCode {
   return "unknown";
 }
 
-// Demo fallback: when the real Worker is unreachable (not yet deployed),
-// generate a local fake alias so the popup UI can be tested end-to-end.
-// Triggered only on NetworkError (DNS/connection failures), never on auth
-// or rate-limit errors. The fake alias is marked with a `demo:` prefix in
-// pollToken so downstream code can recognize it later.
+// DEV-ONLY demo fallback: when the real Worker is unreachable in a dev
+// build, generate a local fake alias so the popup UI can be tested
+// end-to-end. Constant-folded out of production builds.
+// The fake alias is marked with a `demo:` prefix in pollToken so the
+// FETCH_MESSAGES / ACK / DELETE handlers can recognize it.
 function makeDemoAlias(mode: "ephemeral" | "managed", label?: string): import("../lib/types.js").AliasRecord {
   const rand = (): string => {
     const buf = new Uint8Array(7);
@@ -90,11 +90,7 @@ export async function dispatch(
         await deps.poller.start(record.aliasId, record.pollToken, record.address);
         return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
       } catch (err) {
-        // Demo fallback: if the Worker is unreachable for ANY reason
-        // (NetworkError, http_*, timeout, missing api.shld.me DNS, etc.),
-        // hand back a local fake alias so the popup UI can be exercised
-        // without backend deployment. Only auth/rate-limit errors fall through
-        // to the real error UI.
+        // Auth/rate-limit errors always surface as real errors.
         if (
           err instanceof RateLimitError ||
           err instanceof TokenRevokedError ||
@@ -106,11 +102,21 @@ export async function dispatch(
             error: errorToCode(err),
           };
         }
-        const record = makeDemoAlias(msg.mode, msg.label);
-        record.origin = msg.origin;
-        await putActiveAlias(record);
-        if (msg.mode === "managed") await putManagedAlias(record);
-        return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
+        // DEV-ONLY: if the Worker is unreachable in a dev build, hand back a
+        // local fake alias so the popup UI can be exercised without backend
+        // deployment. Production builds surface the real error.
+        if (__SHIELDMAIL_DEV__) {
+          const record = makeDemoAlias(msg.mode, msg.label);
+          record.origin = msg.origin;
+          await putActiveAlias(record);
+          if (msg.mode === "managed") await putManagedAlias(record);
+          return { type: "GENERATE_ALIAS_RESULT", ok: true, record };
+        }
+        return {
+          type: "GENERATE_ALIAS_RESULT",
+          ok: false,
+          error: errorToCode(err),
+        };
       }
     }
     case "FETCH_MESSAGES": {

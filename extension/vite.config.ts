@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from "vite";
 import { resolve } from "node:path";
+import { cpSync, existsSync } from "node:fs";
 
 // Safari Web Extension build — emits separate bundles for content / background / popup.
 // The Xcode "Safari Extension App" wrapper picks up dist/ as the extension resource bundle.
@@ -17,17 +18,39 @@ const stripCrossorigin: Plugin = {
   },
 };
 
+// Copy dev-only diagnostic files (diag-*, real-popup-*) only when
+// NODE_ENV !== "production". Production builds omit them entirely.
+const devPublicCopy: Plugin = {
+  name: "shieldmail:dev-public-copy",
+  apply: "build",
+  closeBundle() {
+    if (process.env["NODE_ENV"] === "production") return;
+    const src = resolve(__dirname, "dev-public");
+    const dst = resolve(__dirname, "dist");
+    if (existsSync(src)) {
+      cpSync(src, dst, { recursive: true });
+    }
+  },
+};
+
 export default defineConfig({
   // base: '' makes all asset paths relative — required for Safari/Chrome extensions
   // where pages are served from extension:// or safari-extension:// URLs.
   base: "",
-  plugins: [stripCrossorigin],
+  plugins: [stripCrossorigin, devPublicCopy],
   // JSX → Preact's h() instead of React.createElement().
   // Without this, Vite's default esbuild config emits React.createElement()
   // calls and the popup throws "Can't find variable: React" at runtime.
   esbuild: {
     jsx: "automatic",
     jsxImportSource: "preact",
+  },
+  define: {
+    // Build-time flag: true in dev builds only. Used to gate the demo
+    // fallback alias-generation path so production builds never synthesize
+    // fake aliases (which would mask real Worker outages).
+    __SHIELDMAIL_DEV__:
+      process.env["NODE_ENV"] === "production" ? "false" : "true",
   },
   resolve: {
     alias: {

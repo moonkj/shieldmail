@@ -8,25 +8,41 @@
 
 const encoder = new TextEncoder();
 
-// TODO(HIGH-1/M4 secret rotation): the cachedKey/cachedKeyMaterial pair is
-// not concurrency-safe. Two simultaneous calls with a freshly rotated secret
-// can race and leave the cache pointing at the older key briefly. Resolve
-// alongside M4 secret rotation design (versioned key ids + atomic swap).
-let cachedKey: CryptoKey | null = null;
-let cachedKeyMaterial: string | null = null;
+// FIX(HIGH-1): rotation-safe key cache.
+//
+// Previously a single { cachedKey, cachedKeyMaterial } pair was used. Two
+// concurrent calls during a secret rotation could race and either return
+// the old key after rotation or briefly swap mid-flight, causing flaky JWT
+// verification. The fix:
+//   1. Cache by secret material — multiple secrets can coexist briefly
+//      while in-flight verifications finish.
+//   2. Cache the *Promise*, not the resolved key, so concurrent callers
+//      with the same secret share a single importKey() round-trip.
+//   3. The Map self-bounds (typically 1–2 entries during rotation; old
+//      secret naturally drops out once no longer requested).
+//   4. Hard cap to prevent unbounded growth on adversarial input.
+const KEY_CACHE_MAX = 8;
+const keyCache = new Map<string, Promise<CryptoKey>>();
 
-async function getKey(secret: string): Promise<CryptoKey> {
-  if (cachedKey && cachedKeyMaterial === secret) return cachedKey;
-  const key = await crypto.subtle.importKey(
+function getKey(secret: string): Promise<CryptoKey> {
+  const cached = keyCache.get(secret);
+  if (cached) return cached;
+  const promise = crypto.subtle.importKey(
     "raw",
     encoder.encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign", "verify"],
   );
-  cachedKey = key;
-  cachedKeyMaterial = secret;
-  return key;
+  // Evict the oldest entry if at capacity (Map preserves insertion order).
+  if (keyCache.size >= KEY_CACHE_MAX) {
+    const oldest = keyCache.keys().next().value;
+    if (oldest !== undefined) keyCache.delete(oldest);
+  }
+  keyCache.set(secret, promise);
+  // If importKey itself rejects, evict so future calls retry.
+  promise.catch(() => keyCache.delete(secret));
+  return promise;
 }
 
 export async function hmacSha256(secret: string, message: string): Promise<ArrayBuffer> {

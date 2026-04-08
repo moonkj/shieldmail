@@ -166,9 +166,11 @@ export function MainScreen({ navigate }: MainScreenProps) {
   };
 
   const handleGenerate = async (): Promise<void> => {
+    // origin may be null in iOS popup contexts where chrome.tabs.query
+    // doesn't return the active web page (e.g., Settings tabs). Synthesize
+    // a placeholder so generate still works for end-to-end UI verification.
     const effectiveOrigin = origin ?? "https://demo.local";
 
-    // Try background-routed generate (real Worker path).
     try {
       const res = await sendRuntime<{ ok: boolean; error?: string; record?: AliasRecord }>({
         type: "GENERATE_ALIAS",
@@ -180,12 +182,23 @@ export function MainScreen({ navigate }: MainScreenProps) {
         setError((res.error as ErrorCode) ?? "unknown");
         return;
       }
-      // res === undefined: SW didn't respond → fall through to demo.
+      // res === undefined → SW silent. In dev builds, fall through to the
+      // popup-side demo fallback below. In production, surface an error.
+      if (!__SHIELDMAIL_DEV__) {
+        setError("network_unavailable");
+        return;
+      }
     } catch {
-      // fall through
+      if (!__SHIELDMAIL_DEV__) {
+        setError("unknown");
+        return;
+      }
     }
 
-    // POPUP-SIDE DEMO FALLBACK: synthesize alias + OTP entirely in popup.
+    // DEV-ONLY POPUP-SIDE DEMO FALLBACK: synthesize alias + OTP entirely
+    // in popup so the UI flow can be exercised without the background SW.
+    // This entire block is dead code in production builds (constant folded).
+    if (!__SHIELDMAIL_DEV__) return;
     try {
       const buf = new Uint8Array(7);
       crypto.getRandomValues(buf);

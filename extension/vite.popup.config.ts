@@ -29,6 +29,10 @@ export default defineConfig({
     jsx: "automatic",
     jsxImportSource: "preact",
   },
+  define: {
+    __SHIELDMAIL_DEV__:
+      process.env["NODE_ENV"] === "production" ? "false" : "true",
+  },
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
