@@ -52,7 +52,10 @@ export function findEmailLikeInput(root: ParentNode): HTMLInputElement | null {
     if (input.type === "hidden" || input.disabled) continue;
     if (!isVisible(input)) continue;
     if (input.type === "email") return input;
+    // inputMode property may not reflect the attribute in all environments
+    // (happy-dom), so check both the IDL and the raw attribute.
     if (input.inputMode === "email") return input;
+    if ((input.getAttribute("inputmode") ?? "").toLowerCase() === "email") return input;
     const autocomplete = (input.getAttribute("autocomplete") ?? "").toLowerCase();
     if (autocomplete.includes("email")) return input;
     const hay = `${input.name} ${input.id} ${input.placeholder}`;

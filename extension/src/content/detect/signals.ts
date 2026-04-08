@@ -38,7 +38,11 @@ export interface SignalContext {
 
 // S1 URL path
 export function s1(ctx: SignalContext): SignalResult {
-  const matched = SIGNUP_URL.test(ctx.location.pathname + ctx.location.search);
+  // Decode percent-encoded path/search so non-ASCII signup keywords
+  // (e.g. /회원가입) match the literal regex characters.
+  let path = ctx.location.pathname + ctx.location.search;
+  try { path = decodeURIComponent(path); } catch { /* keep raw */ }
+  const matched = SIGNUP_URL.test(path);
   return { id: "S1", matched, weight: 0.35, category: "URL" };
 }
 
@@ -108,7 +112,15 @@ export function s6(ctx: SignalContext): SignalResult {
   ctx.form.querySelectorAll("h1,h2,h3,legend").forEach((h) => headings.add(h));
   let node: Element | null = ctx.form.parentElement;
   for (let i = 0; i < 3 && node; i++) {
-    node.querySelectorAll(":scope > h1, :scope > h2, :scope > h3, :scope > legend").forEach((h) => headings.add(h));
+    // Iterate direct children manually instead of using `:scope > ...`
+    // (some test runtimes/older browsers don't fully support :scope in
+    // querySelectorAll on document fragments).
+    for (const child of Array.from(node.children)) {
+      const tag = child.tagName;
+      if (tag === "H1" || tag === "H2" || tag === "H3" || tag === "LEGEND") {
+        headings.add(child);
+      }
+    }
     node = node.parentElement;
   }
   for (const h of headings) {

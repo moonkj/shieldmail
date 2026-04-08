@@ -1,285 +1,189 @@
 /**
  * ios-bridge.ts — unit tests.
  *
- * Covers: isSafariExtensionContext, haptic, storeToken,
- *         appendRecentAlias, loadToken (timeout + resolution).
+ * Covers: haptic (Web Vibration API), storeToken, loadToken, appendRecentAlias
+ * (all backed by chrome.storage.local in the MVP — no native messaging).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-// We import after setting up mocks so module is fresh per describe.
-// happy-dom environment; chrome is mocked in test/setup.ts.
-
-function stubSafari(dispatchImpl?: (...args: unknown[]) => void): void {
-  (globalThis as Record<string, unknown>).safari = {
-    extension: {
-      dispatchMessage: dispatchImpl ?? vi.fn(),
+// In-memory chrome.storage.local mock.
+function makeStorageMock(): Record<string, unknown> {
+  const store: Record<string, unknown> = {};
+  (globalThis as Record<string, unknown>).chrome = {
+    storage: {
+      local: {
+        get: vi.fn(async (key: string | string[] | null) => {
+          if (key === null || key === undefined) return { ...store };
+          if (typeof key === "string") {
+            return key in store ? { [key]: store[key] } : {};
+          }
+          const out: Record<string, unknown> = {};
+          for (const k of key) if (k in store) out[k] = store[k];
+          return out;
+        }),
+        set: vi.fn(async (items: Record<string, unknown>) => {
+          Object.assign(store, items);
+        }),
+      },
     },
   };
+  return store;
 }
 
-function clearSafari(): void {
-  delete (globalThis as Record<string, unknown>).safari;
-}
-
-// Module under test — imported dynamically so stubbing takes effect.
 async function getBridge() {
-  // Vite / vitest caches modules; use vi.resetModules() before each suite
-  // if state leaks. For this file we avoid module-level side effects.
   return import("../src/content/ios-bridge");
 }
 
-describe("isSafariExtensionContext()", () => {
-  afterEach(() => clearSafari());
+beforeEach(() => {
+  vi.resetModules();
+  makeStorageMock();
+});
 
-  it("returns false when safari global is absent", async () => {
-    const { isSafariExtensionContext } = await getBridge();
-    expect(isSafariExtensionContext()).toBe(false);
-  });
-
-  it("returns false when safari.extension is missing", async () => {
-    (globalThis as Record<string, unknown>).safari = {};
-    const { isSafariExtensionContext } = await getBridge();
-    expect(isSafariExtensionContext()).toBe(false);
-  });
-
-  it("returns true when safari.extension is present", async () => {
-    stubSafari();
-    const { isSafariExtensionContext } = await getBridge();
-    expect(isSafariExtensionContext()).toBe(true);
-  });
+afterEach(() => {
+  delete (globalThis as Record<string, unknown>).chrome;
 });
 
 describe("haptic()", () => {
-  afterEach(() => clearSafari());
-
-  it("does nothing when no safari context", async () => {
+  it("calls navigator.vibrate when available — light", async () => {
+    const vib = vi.fn();
+    Object.defineProperty(navigator, "vibrate", { value: vib, configurable: true });
     const { haptic } = await getBridge();
-    expect(() => haptic("success")).not.toThrow();
+    haptic("light");
+    expect(vib).toHaveBeenCalledWith(10);
   });
 
-  it.each(["light", "medium", "heavy", "success", "error", "warning", "selection"] as const)(
-    "dispatches haptic style '%s' when context available",
-    async (style) => {
-      const dispatch = vi.fn();
-      stubSafari(dispatch);
-      const { haptic } = await getBridge();
-      haptic(style);
-      expect(dispatch).toHaveBeenCalledWith("haptic", { style });
-    }
-  );
+  it("calls navigator.vibrate — medium", async () => {
+    const vib = vi.fn();
+    Object.defineProperty(navigator, "vibrate", { value: vib, configurable: true });
+    const { haptic } = await getBridge();
+    haptic("medium");
+    expect(vib).toHaveBeenCalledWith(20);
+  });
 
-  it("silently swallows exceptions from dispatchMessage", async () => {
-    stubSafari(() => { throw new Error("native crash"); });
+  it("calls navigator.vibrate — heavy", async () => {
+    const vib = vi.fn();
+    Object.defineProperty(navigator, "vibrate", { value: vib, configurable: true });
+    const { haptic } = await getBridge();
+    haptic("heavy");
+    expect(vib).toHaveBeenCalledWith(40);
+  });
+
+  it("falls back to medium pattern for unknown style", async () => {
+    const vib = vi.fn();
+    Object.defineProperty(navigator, "vibrate", { value: vib, configurable: true });
+    const { haptic } = await getBridge();
+    haptic("nonsense-style");
+    expect(vib).toHaveBeenCalledWith(20);
+  });
+
+  it("silently no-ops when navigator.vibrate is undefined", async () => {
+    Object.defineProperty(navigator, "vibrate", { value: undefined, configurable: true });
+    const { haptic } = await getBridge();
+    expect(() => haptic("medium")).not.toThrow();
+  });
+
+  it("silently swallows exceptions from navigator.vibrate", async () => {
+    Object.defineProperty(navigator, "vibrate", {
+      value: () => { throw new Error("not allowed"); },
+      configurable: true,
+    });
     const { haptic } = await getBridge();
     expect(() => haptic("medium")).not.toThrow();
   });
 });
 
-describe("storeToken()", () => {
-  afterEach(() => clearSafari());
-
-  it("is a no-op without safari context", async () => {
+describe("storeToken() / loadToken()", () => {
+  it("storeToken persists under sm_token_<aliasId>", async () => {
     const { storeToken } = await getBridge();
-    expect(() => storeToken("id", "tok")).not.toThrow();
+    await storeToken("alias-abc", "jwt.tok.en");
+    const set = chrome.storage.local.set as ReturnType<typeof vi.fn>;
+    expect(set).toHaveBeenCalledWith({ "sm_token_alias-abc": "jwt.tok.en" });
+    // Verify round-trip via the get mock.
+    const result = await chrome.storage.local.get("sm_token_alias-abc");
+    expect(result).toEqual({ "sm_token_alias-abc": "jwt.tok.en" });
   });
 
-  it("dispatches 'storeToken' with correct aliasId and token", async () => {
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
-    const { storeToken } = await getBridge();
-    storeToken("alias-abc", "jwt.tok.en");
-    expect(dispatch).toHaveBeenCalledWith("storeToken", {
-      aliasId: "alias-abc",
-      token: "jwt.tok.en",
-    });
+  it("loadToken returns the previously stored token", async () => {
+    const { storeToken, loadToken } = await getBridge();
+    await storeToken("alias-xyz", "secret-jwt");
+    const loaded = await loadToken("alias-xyz");
+    expect(loaded).toBe("secret-jwt");
   });
 
-  it("silently swallows dispatch errors", async () => {
-    stubSafari(() => { throw new Error("keychain fail"); });
+  it("loadToken returns null when no token exists", async () => {
+    const { loadToken } = await getBridge();
+    const result = await loadToken("never-seen");
+    expect(result).toBeNull();
+  });
+
+  it("loadToken returns null when chrome.storage throws", async () => {
+    (chrome.storage.local.get as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("storage err"),
+    );
+    const { loadToken } = await getBridge();
+    const result = await loadToken("any");
+    expect(result).toBeNull();
+  });
+
+  it("storeToken silently swallows storage errors", async () => {
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("storage err"),
+    );
     const { storeToken } = await getBridge();
-    expect(() => storeToken("id", "tok")).not.toThrow();
+    await expect(storeToken("a", "b")).resolves.toBeUndefined();
   });
 });
 
 describe("appendRecentAlias()", () => {
-  afterEach(() => clearSafari());
-
-  it("is a no-op without safari context", async () => {
+  it("stores a single alias under sm_recent_aliases", async () => {
     const { appendRecentAlias } = await getBridge();
-    expect(() => appendRecentAlias({ aliasId: "a", address: "a@d.me" })).not.toThrow();
+    await appendRecentAlias({ aliasId: "abc", address: "abc@d1.shld.me" });
+    const result = await chrome.storage.local.get("sm_recent_aliases");
+    expect(result).toEqual({
+      sm_recent_aliases: [{ aliasId: "abc", address: "abc@d1.shld.me" }],
+    });
   });
 
-  it("dispatches 'storeAliases' with the alias wrapped in an array", async () => {
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
+  it("includes optional label", async () => {
     const { appendRecentAlias } = await getBridge();
-    appendRecentAlias({ aliasId: "abc", address: "abc@d.shld.me" });
-    expect(dispatch).toHaveBeenCalledWith("storeAliases", {
-      aliases: [{ aliasId: "abc", address: "abc@d.shld.me" }],
-    });
+    await appendRecentAlias({ aliasId: "x", address: "x@d.me", label: "GitHub" });
+    const result = await chrome.storage.local.get("sm_recent_aliases");
+    const list = (result as { sm_recent_aliases: unknown[] }).sm_recent_aliases;
+    expect(list[0]).toEqual({ aliasId: "x", address: "x@d.me", label: "GitHub" });
   });
 
-  it("includes optional label in the dispatched alias", async () => {
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
+  it("prepends newest alias and dedupes by aliasId", async () => {
     const { appendRecentAlias } = await getBridge();
-    appendRecentAlias({ aliasId: "xyz", address: "xyz@d2.shld.me", label: "GitHub" });
-    expect(dispatch).toHaveBeenCalledWith("storeAliases", {
-      aliases: [{ aliasId: "xyz", address: "xyz@d2.shld.me", label: "GitHub" }],
-    });
+    await appendRecentAlias({ aliasId: "1", address: "1@d.me" });
+    await appendRecentAlias({ aliasId: "2", address: "2@d.me" });
+    await appendRecentAlias({ aliasId: "1", address: "1-new@d.me" }); // dedup + bump
+    const result = await chrome.storage.local.get("sm_recent_aliases");
+    const list = (result as { sm_recent_aliases: { aliasId: string; address: string }[] }).sm_recent_aliases;
+    expect(list).toHaveLength(2);
+    expect(list[0]?.aliasId).toBe("1");
+    expect(list[0]?.address).toBe("1-new@d.me");
+    expect(list[1]?.aliasId).toBe("2");
   });
 
-  it("aliases payload is always an Array", async () => {
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
+  it("caps the list at 3 entries", async () => {
     const { appendRecentAlias } = await getBridge();
-    appendRecentAlias({ aliasId: "t", address: "t@d.me" });
-    const [, userInfo] = dispatch.mock.calls[0] as [string, { aliases: unknown }];
-    expect(Array.isArray(userInfo.aliases)).toBe(true);
+    await appendRecentAlias({ aliasId: "1", address: "1@d.me" });
+    await appendRecentAlias({ aliasId: "2", address: "2@d.me" });
+    await appendRecentAlias({ aliasId: "3", address: "3@d.me" });
+    await appendRecentAlias({ aliasId: "4", address: "4@d.me" });
+    const result = await chrome.storage.local.get("sm_recent_aliases");
+    const list = (result as { sm_recent_aliases: { aliasId: string }[] }).sm_recent_aliases;
+    expect(list).toHaveLength(3);
+    expect(list.map((a) => a.aliasId)).toEqual(["4", "3", "2"]);
   });
 
-  it("silently swallows dispatch errors", async () => {
-    stubSafari(() => { throw new Error("storage error"); });
+  it("silently swallows storage errors", async () => {
+    (chrome.storage.local.set as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+      new Error("storage err"),
+    );
     const { appendRecentAlias } = await getBridge();
-    expect(() => appendRecentAlias({ aliasId: "a", address: "a@d.me" })).not.toThrow();
-  });
-});
-
-describe("loadToken()", () => {
-  afterEach(() => {
-    clearSafari();
-    vi.useRealTimers();
-  });
-
-  it("returns null immediately when no safari context", async () => {
-    const { loadToken } = await getBridge();
-    const result = await loadToken("any-id");
-    expect(result).toBeNull();
-  });
-
-  it("dispatches getToken to safari extension and resolves null after 3s timeout", async () => {
-    vi.useFakeTimers();
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
-
-    const { loadToken } = await getBridge();
-    const promise = loadToken("alias-xyz");
-
-    expect(dispatch).toHaveBeenCalledWith("getToken", { aliasId: "alias-xyz" });
-
-    vi.advanceTimersByTime(3100);
-    const result = await promise;
-    expect(result).toBeNull();
-  });
-
-  it("resolves with token when chrome.runtime.onMessage delivers matching message", async () => {
-    vi.useFakeTimers();
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
-
-    // Capture the listener registered by loadToken
-    let capturedListener: ((msg: unknown) => void) | null = null;
-    const originalAdd = chrome.runtime.onMessage.addListener.bind(chrome.runtime.onMessage);
-    vi.spyOn(chrome.runtime.onMessage, "addListener").mockImplementation((fn) => {
-      capturedListener = fn as (msg: unknown) => void;
-      originalAdd(fn);
-    });
-
-    const { loadToken } = await getBridge();
-    const promise = loadToken("alias-123");
-
-    vi.advanceTimersByTime(50); // let microtasks settle
-
-    // Simulate Swift → JS response via runtime message
-    capturedListener?.({
-      name: "tokenResult",
-      userInfo: { aliasId: "alias-123", token: "secret-jwt-token" },
-    });
-
-    const result = await promise;
-    expect(result).toBe("secret-jwt-token");
-
-    vi.restoreAllMocks();
-  });
-
-  it("ignores messages with non-matching aliasId", async () => {
-    vi.useFakeTimers();
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
-
-    let capturedListener: ((msg: unknown) => void) | null = null;
-    vi.spyOn(chrome.runtime.onMessage, "addListener").mockImplementation((fn) => {
-      capturedListener = fn as (msg: unknown) => void;
-    });
-
-    const { loadToken } = await getBridge();
-    const promise = loadToken("alias-A");
-
-    capturedListener?.({
-      name: "tokenResult",
-      userInfo: { aliasId: "alias-B", token: "wrong" },
-    });
-
-    vi.advanceTimersByTime(3100);
-    const result = await promise;
-    expect(result).toBeNull();
-
-    vi.restoreAllMocks();
-  });
-
-  it("ignores messages with wrong name field", async () => {
-    vi.useFakeTimers();
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
-
-    let capturedListener: ((msg: unknown) => void) | null = null;
-    vi.spyOn(chrome.runtime.onMessage, "addListener").mockImplementation((fn) => {
-      capturedListener = fn as (msg: unknown) => void;
-    });
-
-    const { loadToken } = await getBridge();
-    const promise = loadToken("alias-A");
-
-    capturedListener?.({
-      name: "wrongMessage",
-      userInfo: { aliasId: "alias-A", token: "tok" },
-    });
-
-    vi.advanceTimersByTime(3100);
-    const result = await promise;
-    expect(result).toBeNull();
-
-    vi.restoreAllMocks();
-  });
-
-  it("resolves null when token field is absent in userInfo", async () => {
-    vi.useFakeTimers();
-    const dispatch = vi.fn();
-    stubSafari(dispatch);
-
-    let capturedListener: ((msg: unknown) => void) | null = null;
-    vi.spyOn(chrome.runtime.onMessage, "addListener").mockImplementation((fn) => {
-      capturedListener = fn as (msg: unknown) => void;
-    });
-
-    const { loadToken } = await getBridge();
-    const promise = loadToken("alias-A");
-
-    capturedListener?.({
-      name: "tokenResult",
-      userInfo: { aliasId: "alias-A" }, // missing token
-    });
-
-    const result = await promise;
-    expect(result).toBeNull();
-
-    vi.restoreAllMocks();
-  });
-
-  it("returns null and cleans up if dispatchMessage throws", async () => {
-    stubSafari(() => { throw new Error("dispatch fail"); });
-    const { loadToken } = await getBridge();
-    const result = await loadToken("alias-err");
-    expect(result).toBeNull();
+    await expect(
+      appendRecentAlias({ aliasId: "a", address: "a@d.me" }),
+    ).resolves.toBeUndefined();
   });
 });

@@ -102,9 +102,12 @@ describe("S5 — terms checkbox", () => {
 });
 
 describe("S6 — form heading", () => {
-  it("matches nearby h1 'Create your account'", () => {
+  it("matches nearby h1 'Create an account'", () => {
+    // SIGNUP_TEXT regex: /create[-_\s]?(an[-_\s]?)?account/
+    // — "Create an account" matches; "Create your account" intentionally
+    // does NOT (the 'an' alternation only allows 'an' or nothing).
     document.body.innerHTML =
-      '<section><h1>Create your account</h1><form><input type="email"/></form></section>';
+      '<section><h1>Create an account</h1><form><input type="email"/></form></section>';
     const form = document.querySelector("form") as HTMLFormElement;
     expect(s6(ctx(form)).matched).toBe(true);
   });

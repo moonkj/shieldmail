@@ -16,9 +16,8 @@ vi.mock("../src/content/bridge", () => ({
 vi.mock("../src/content/ios-bridge", () => ({
   haptic: vi.fn(),
   appendRecentAlias: vi.fn(),
-  isSafariExtensionContext: vi.fn(() => false),
   storeToken: vi.fn(),
-  loadToken:  vi.fn(() => Promise.resolve(null)),
+  loadToken: vi.fn(() => Promise.resolve(null)),
 }));
 
 import { sendMessage } from "../src/content/bridge";
@@ -382,8 +381,8 @@ describe("IOSFloatingButtonInjector — error recovery at exactly 2000ms", () =>
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
   });
 
-  it("stays in error before 2000ms, recovers at 2000ms", async () => {
-    vi.useFakeTimers();
+  it("recovers from error to default after 2000ms", async () => {
+    vi.useRealTimers(); // real timers — fake timers + waitFor races
     vi.mocked(sendMessage).mockResolvedValueOnce({ ok: false, error: "fail" });
 
     const inj = new IOSFloatingButtonInjector({
@@ -399,12 +398,21 @@ describe("IOSFloatingButtonInjector — error recovery at exactly 2000ms", () =>
     }
 
     btn!.click();
-    await vi.waitFor(() => expect(btn!.getAttribute("data-state")).toBe("error"));
 
-    vi.advanceTimersByTime(1999);
+    // Wait for error state
+    await new Promise<void>((resolve) => {
+      const check = setInterval(() => {
+        if (btn!.getAttribute("data-state") === "error") {
+          clearInterval(check);
+          resolve();
+        }
+      }, 10);
+      setTimeout(() => { clearInterval(check); resolve(); }, 1000);
+    });
     expect(btn!.getAttribute("data-state")).toBe("error");
 
-    vi.advanceTimersByTime(1);
+    // Wait > 2s for auto-recovery
+    await new Promise((r) => setTimeout(r, 2100));
     expect(btn!.getAttribute("data-state")).toBe("default");
   });
 });

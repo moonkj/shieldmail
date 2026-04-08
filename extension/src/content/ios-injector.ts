@@ -157,7 +157,12 @@ export class IOSFloatingButtonInjector {
       pointer-events: none;
     `;
 
-    const shadow = host.attachShadow({ mode: "closed" });
+    // Open shadow root: closed mode prevented unit tests from inspecting
+    // button state. CSS isolation (the actual reason we use Shadow DOM) is
+    // the same in both modes; closed only blocks JS introspection from
+    // outside, which we don't actually need for security here (the page
+    // can still see the host element regardless).
+    const shadow = host.attachShadow({ mode: "open" });
     const style = document.createElement("style");
     style.textContent = CSS;
     shadow.appendChild(style);

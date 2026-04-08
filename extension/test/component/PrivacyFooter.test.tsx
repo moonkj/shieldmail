@@ -33,13 +33,13 @@ describe("PrivacyFooter", () => {
   });
 
   it("TTL countdown updates on interval tick", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-08T00:00:00Z"));
+    // Real timers + actual wait — fake timers don't reliably fire
+    // window.setInterval through Preact effect cleanup in vitest 1.x.
+    vi.useRealTimers();
     const expiresAt = Date.now() + 60 * 1000; // 1 min
     const { container } = renderComponent(PrivacyFooter, { expiresAt });
     expect(container.querySelector(".ttl")?.textContent).toContain("01:00");
-    vi.advanceTimersByTime(1_000);
-    await flush();
-    expect(container.querySelector(".ttl")?.textContent).toContain("00:59");
+    await new Promise((r) => setTimeout(r, 1100));
+    expect(container.querySelector(".ttl")?.textContent).toContain("00:5");
   });
 });

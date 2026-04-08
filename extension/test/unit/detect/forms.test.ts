@@ -89,16 +89,17 @@ describe("discoverForms", () => {
     expect(candidate.form.tagName.toLowerCase()).not.toBe("div");
   });
 
-  it("SPA fallback — plain <div> container is not chosen when no semantic ancestor", () => {
-    // Wrap in a shallow div only — forms.ts prefers section/main/article/role=form
+  it("SPA fallback — plain <div> container is allowed via walk-up", () => {
+    // forms.ts: primary pass excludes div; secondary bounded walk-up
+    // (≤2 additional inputs) accepts any ancestor including div.
     document.body.innerHTML =
       '<div><input type="email" name="email"/></div>';
     const out = discoverForms(document);
-    // At minimum, the email field is found; if a container is chosen it must
-    // not be a generic div — it may fall back to document.body.
     const cand = out[out.length - 1];
     expect(cand.emailField).not.toBeNull();
-    expect(cand.form.tagName.toLowerCase()).not.toBe("div");
+    // Container is the div (or body, both acceptable for the walk-up path).
+    const tag = cand.form.tagName.toLowerCase();
+    expect(["div", "body"]).toContain(tag);
   });
 });
 

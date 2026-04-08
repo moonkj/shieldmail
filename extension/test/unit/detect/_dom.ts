@@ -32,8 +32,21 @@ export function mountHTML(html: string): HTMLElement {
 }
 
 export function setLocation(pathname: string, search = ""): void {
-  // happy-dom allows rewriting location via history
-  window.history.replaceState({}, "", pathname + search);
+  // happy-dom 14: history.replaceState doesn't always update window.location
+  // synchronously. Use href assignment which is more reliably propagated.
+  try {
+    window.history.replaceState({}, "", pathname + search);
+  } catch {
+    // ignore
+  }
+  // Double-write via location.href as a backup. happy-dom may navigate, so
+  // wrap in try/catch to suppress NavigationError in test runs.
+  try {
+    (window as unknown as { location: { href: string } }).location.href =
+      "http://localhost" + pathname + search;
+  } catch {
+    // ignore
+  }
 }
 
 export function setTitle(title: string): void {
