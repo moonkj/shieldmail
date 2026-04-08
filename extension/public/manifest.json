@@ -3,7 +3,6 @@
   "name": "ShieldMail",
   "version": "0.1.0",
   "description": "가입 스트레스를 제거하는 자동화 인프라. Shield Mode로 한 번의 클릭에 임시 이메일 생성·OTP 수신.",
-  "default_locale": "ko",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -40,7 +39,7 @@
         "default": "Ctrl+Shift+E",
         "mac": "Command+Shift+E"
       },
-      "description": "Shield Mode 강제 실행 — 현재 페이지에서 임시 이메일 생성"
+      "description": "Shield Mode — 현재 페이지에서 임시 이메일 생성"
     }
   }
 }
