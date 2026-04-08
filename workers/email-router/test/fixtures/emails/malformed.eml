@@ -1,0 +1,4 @@
+This is not a valid MIME message at all.
+No headers. No boundaries.
+Just garbage that will make postal-mime upset:
+<<<>>><<<<<>>>>><><><><><

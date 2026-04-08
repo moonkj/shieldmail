@@ -1,0 +1,20 @@
+Return-Path: <noreply@global.example.com>
+Authentication-Results: mx.shld.me; dkim=pass; spf=pass
+From: Global Example <noreply@global.example.com>
+To: multi@d1.shld.me
+Subject: Your verification code
+Message-ID: <fixture-multilang-001@global.example.com>
+Date: Tue, 08 Apr 2026 10:15:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+English: Your verification code is 992847.
+
+中文: 验证码: 772910 请勿告诉他人。
+
+日本語: 確認コード 612385 を入力してください。
+
+한국어: 인증번호 482913 을 입력해주세요.
+
+Thanks!

@@ -1,0 +1,63 @@
+name = "shieldmail-email-router"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Email Routing: bind incoming MX to this worker.
+# NOTE: register *@d1.shld.me as an Email Routing destination in the
+# Cloudflare dashboard and route to this Worker. Email handler is
+# `export default { email(...) }` in src/index.ts.
+[[email]]
+name = "EMAIL"
+destination_addresses = []
+
+# ─────────────────────────────────────────────
+# KV: alias index
+# ─────────────────────────────────────────────
+# Replace `id` and `preview_id` before deploy.
+[[kv_namespaces]]
+binding = "ALIAS_KV"
+id = "REPLACE_WITH_REAL_KV_NAMESPACE_ID"
+preview_id = "REPLACE_WITH_REAL_KV_PREVIEW_ID"
+
+# ─────────────────────────────────────────────
+# Durable Objects
+# ─────────────────────────────────────────────
+[[durable_objects.bindings]]
+name = "MSG_DO"
+class_name = "AliasChannel"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMIT"
+class_name = "TokenBucket"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["AliasChannel", "TokenBucket"]
+
+# ─────────────────────────────────────────────
+# Vars (non-secret)
+# ─────────────────────────────────────────────
+[vars]
+DOMAIN_POOL = "d1.shld.me"
+MESSAGE_TTL_MS = "600000"
+EPHEMERAL_ALIAS_TTL_SEC = "3600"
+POLL_TOKEN_TTL_SEC = "7200"
+
+# ─────────────────────────────────────────────
+# Secrets (set via `wrangler secret put`)
+#   HMAC_KEY    — JWT + alias hash signing key
+#   SENTRY_DSN  — optional, M4
+# ─────────────────────────────────────────────
+# (declared in code via Env type; do not put values here)
+
+# ─────────────────────────────────────────────
+# Routes
+# ─────────────────────────────────────────────
+# HTTP API route — replace zone before deploy.
+# routes = [
+#   { pattern = "api.shld.me/*", zone_name = "shld.me" }
+# ]
+
+[observability]
+enabled = true

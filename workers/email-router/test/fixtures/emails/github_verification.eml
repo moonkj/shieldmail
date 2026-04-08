@@ -1,0 +1,45 @@
+Return-Path: <noreply@github.com>
+Received: from mail.github.com (mail.github.com [192.0.2.10])
+	by mx.shld.me with ESMTPS; Tue, 08 Apr 2026 10:00:00 +0000
+Authentication-Results: mx.shld.me;
+	dkim=pass header.i=@github.com;
+	spf=pass smtp.mailfrom=noreply@github.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=github.com;
+	s=pf2014; t=1712563200;
+From: GitHub <noreply@github.com>
+To: u8af2k3@d1.shld.me
+Subject: [GitHub] Please verify your device
+Message-ID: <fixture-github-001@github.com>
+Date: Tue, 08 Apr 2026 10:00:00 +0000
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="----=_Part_001"
+
+------=_Part_001
+Content-Type: text/plain; charset="utf-8"
+
+Hi,
+
+We noticed a new sign-in to your GitHub account. If this was you,
+please use the following verification code to confirm:
+
+  Verification code: 824193
+
+This code will expire in 10 minutes. If you did not request this,
+please ignore this email or contact support.
+
+Thanks,
+The GitHub Team
+
+------=_Part_001
+Content-Type: text/html; charset="utf-8"
+
+<html><body>
+<p>Hi,</p>
+<p>We noticed a new sign-in to your GitHub account. If this was you,
+please use the following verification code to confirm:</p>
+<h2>Verification code: 824193</h2>
+<p>This code will expire in 10 minutes.</p>
+<p><a href="https://github.com/sessions/verified-device?token=abc123&utm_source=email&__hssc=99">Verify this device</a></p>
+</body></html>
+
+------=_Part_001--

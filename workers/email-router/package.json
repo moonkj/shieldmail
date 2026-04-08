@@ -1,0 +1,31 @@
+{
+  "name": "@shieldmail/email-router",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ShieldMail Cloudflare Worker: Hono API + Email Routing handler + AliasChannel DO. Implements M1 of the architecture.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "postal-mime": "^2.2.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.0",
+    "@cloudflare/workers-types": "^4.20250408.0",
+    "typescript": "^5.6.0",
+    "vitest": "1.5.0",
+    "wrangler": "^3.80.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

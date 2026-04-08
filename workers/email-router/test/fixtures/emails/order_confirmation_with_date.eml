@@ -1,0 +1,22 @@
+Return-Path: <orders@example-shop.com>
+Authentication-Results: mx.shld.me; dkim=pass; spf=pass
+From: Example Shop <orders@example-shop.com>
+To: shopper@d1.shld.me
+Subject: Order #20240331 confirmed
+Message-ID: <fixture-order-001@example-shop.com>
+Date: Tue, 08 Apr 2026 10:10:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+
+Hi customer,
+
+Your order has been confirmed.
+
+Order date 20240331. Your verification code is 123456.
+
+Order #20240331 verification code: 4829
+
+Today is 2024-03-31 and your code 482913 is valid for the next ten
+minutes. Use it once and discard.
+
+Thanks for shopping with us!

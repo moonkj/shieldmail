@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <body>
+    <p>Hi there,</p>
+    <p>Please verify your email address by clicking the button below.</p>
+    <p>
+      <a
+        href="https://example.com/verify?token=abc&__hssc=1&__hstc=2&utm_source=x&__hsfp=3&_hsenc=z&_hsmi=q"
+        >Verify your account</a
+      >
+    </p>
+    <p>
+      Or use the magic link:
+      <a href="https://magic.example.com/auth?id=42&fbclid=zzz&gclid=qqq&mc_cid=12&mc_eid=34"
+        >Magic sign-in</a
+      >
+    </p>
+    <p>
+      Manage subscription:
+      <a href="https://example.com/manage?hs_mode=live&hsConfig=1">settings</a>
+    </p>
+    <p>
+      Plain link:
+      https://example.com/login?utm_medium=email&hs_mode=live
+    </p>
+    <p>
+      Bad protocol (must be dropped):
+      <a href="javascript:alert(1)">Click</a>
+      <a href="data:text/html,evil">Click</a>
+      <a href="http://insecure.example.com/verify">insecure</a>
+    </p>
+  </body>
+</html>
