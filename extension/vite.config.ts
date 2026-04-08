@@ -4,6 +4,9 @@ import { resolve } from "node:path";
 // Safari Web Extension build — emits separate bundles for content / background / popup.
 // The Xcode "Safari Extension App" wrapper picks up dist/ as the extension resource bundle.
 export default defineConfig({
+  // base: '' makes all asset paths relative — required for Safari/Chrome extensions
+  // where pages are served from extension:// or safari-extension:// URLs.
+  base: "",
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
