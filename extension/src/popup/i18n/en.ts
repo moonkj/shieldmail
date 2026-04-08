@@ -1,0 +1,88 @@
+import type { Messages } from "./ko.js";
+
+export const en: Messages = {
+  appTitle: "ShieldMail",
+  header: {
+    settings: "Settings",
+    back: "Back",
+  },
+  main: {
+    sectionAddress: "Temporary address",
+    sectionOtp: "OTP",
+    sectionVerify: "Verification link",
+    copy: "Copy",
+    copied: "Copied ✓",
+    emptyState: "Use Shield Mode on this page",
+    generateNew: "Generate new address",
+    openManaged: "Open Managed Mode",
+    openVerify: "Open verification link",
+    verifyWarning:
+      "⚠ This link came from an unknown sender. Make sure it's safe before opening.",
+    waiting: "Waiting for email...",
+    ttlRemaining: (mmss: string) => `Address expires in ${mmss}`,
+    lowConfidence: "Low confidence",
+  },
+  onboarding: {
+    step1Title: "ShieldMail",
+    step1Tagline: "Sign-up stress, automated away",
+    step1Body:
+      "Sign-up stress, gone. Tap the shield to fill a temporary address instantly.",
+    step1Cta: "Get started",
+    step2Title: "How will you use it?",
+    modeDev: "Dev/QA testing — fast iteration",
+    modeEveryday: "Everyday sign-up — block spam",
+    next: "Next →",
+    step3Title: "Almost there",
+    step3Body:
+      "ShieldMail needs permission to detect email fields on pages.",
+    openSafariSettings: "Open Safari settings",
+    finish: "Grant permission",
+  },
+  managed: {
+    title: "Managed Mode",
+    searchPlaceholder: "Search site or address...",
+    tags: {
+      all: "All",
+      work: "Work",
+      shopping: "Shopping",
+      qa: "QA",
+      newsletter: "Newsletter",
+      addTag: "+ Add tag",
+    },
+    empty:
+      "No saved addresses yet. Tap 'Save to Managed Mode' on the shield icon when signing up.",
+    noMail: "No mail",
+    lastMail: (when: string) => `Last mail: ${when}`,
+    detailNote: "In M2 only the latest message is retained for the TTL window.",
+    delete: "Delete",
+  },
+  settings: {
+    title: "Settings",
+    userMode: "User mode",
+    developer: "Dev / QA",
+    everyday: "Everyday",
+    autoCopy: "Auto-copy OTP",
+    managedMode: "Save to Managed Mode by default",
+    domainPool: "Domain pool info",
+    apiBaseUrl: "API base URL",
+    openSource: "Open-source repository (GitHub)",
+    version: "Version",
+    resetOnboarding: "Replay onboarding",
+  },
+  errors: {
+    rate_limited: "Too many requests. Please try again shortly.",
+    token_revoked: "Session expired. Please generate a new address.",
+    alias_expired: "This address has expired.",
+    network_unavailable: "Please check your network connection.",
+    domain_blocked:
+      "This site rejects ShieldMail addresses. Try another method.",
+    unknown: "An unknown error occurred.",
+    retry: "Retry",
+    newAlias: "Generate new address",
+    fallback: "See guide",
+  },
+  privacy: {
+    footer:
+      "Email content is never stored. Only OTP and links are kept in memory for up to 10 minutes, then auto-deleted.",
+  },
+};

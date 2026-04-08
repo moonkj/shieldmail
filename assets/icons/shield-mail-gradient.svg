@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="ShieldMail">
+  <title>ShieldMail</title>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#007AFF"/>
+      <stop offset="1" stop-color="#00D4AA"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#g)" d="M64 8 C48 8 32 10 20 15 C18 16 16 18 16 21 L16 62 C16 91 35 114 62 120 C63 120 65 120 66 120 C93 114 112 91 112 62 L112 21 C112 18 110 16 108 15 C96 10 80 8 64 8 Z"/>
+  <path fill="#FFFFFF" d="M36 48 L92 48 C94 48 96 50 96 52 L96 84 C96 86 94 88 92 88 L36 88 C34 88 32 86 32 84 L32 52 C32 50 34 48 36 48 Z"/>
+  <path fill="#FFFFFF" d="M34 50 L64 72 L94 50 L90 46 L64 66 L38 46 Z"/>
+</svg>

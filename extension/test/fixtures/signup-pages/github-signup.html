@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><title>Sign up for GitHub</title></head>
+<body>
+  <main>
+    <section>
+      <h1>Create your account</h1>
+      <form action="/users" method="post">
+        <label for="email">Email</label>
+        <input id="email" type="email" name="user[email]" autocomplete="email"/>
+
+        <label for="pw">Password</label>
+        <input id="pw" type="password" name="user[password]" autocomplete="new-password"/>
+
+        <label for="pw2">Confirm password</label>
+        <input id="pw2" type="password" name="user[password_confirmation]"/>
+
+        <label><input type="checkbox" name="tos"/>I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</label>
+
+        <button type="submit">Create account</button>
+
+        <div class="social">
+          <button type="button">Continue with Google</button>
+          <button type="button">Sign up with Apple</button>
+          <button type="button">Sign up with GitHub</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,136 @@
+/*
+ * Shield icon styles — injected inside Shadow DOM.
+ * Tokens are inlined (Shadow DOM cannot reach page :root vars reliably).
+ */
+
+:host {
+  all: initial;
+  position: absolute;
+  z-index: 2147483600;
+  pointer-events: auto;
+  font-family: -apple-system, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+
+  --sm-primary: #007aff;
+  --sm-accent: #00d4aa;
+  --sm-success: #34c759;
+  --sm-danger: #ff3b30;
+  --sm-text-on-primary: #ffffff;
+  --sm-motion-fast: 120ms;
+  --sm-motion-normal: 240ms;
+  --sm-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --sm-shield-size: 20px;
+}
+
+.host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--sm-shield-size);
+  height: var(--sm-shield-size);
+}
+
+button.shield {
+  all: unset;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--sm-motion-normal) var(--sm-ease),
+    transform var(--sm-motion-normal) var(--sm-ease);
+  color: var(--sm-accent);
+}
+
+button.shield.mounted {
+  opacity: 0.9;
+  transform: scale(1);
+}
+
+button.shield:hover,
+button.shield:focus-visible {
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+button.shield:focus-visible {
+  outline: 2px solid var(--sm-primary);
+  outline-offset: 2px;
+}
+
+button.shield[data-sm-state="active"] {
+  transform: scale(0.92);
+}
+
+button.shield[data-sm-state="generating"] svg.spinner {
+  display: inline-block;
+  animation: sm-spin 1.2s linear infinite;
+}
+
+button.shield[data-sm-state="generating"] svg.shield-icon {
+  opacity: 0.5;
+}
+
+button.shield[data-sm-state="done"] {
+  color: var(--sm-success);
+  filter: drop-shadow(0 0 6px rgba(52, 199, 89, 0.6));
+}
+
+button.shield[data-sm-state="error"] {
+  color: var(--sm-danger);
+  animation: sm-shake 120ms ease-in-out 2;
+}
+
+button.shield[data-sm-state="fade-out"] {
+  opacity: 0;
+  transform: scale(0.8);
+  transition:
+    opacity 300ms var(--sm-ease),
+    transform 300ms var(--sm-ease);
+}
+
+svg.spinner {
+  display: none;
+  position: absolute;
+  width: 20px;
+  height: 20px;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  background: #1c1c1e;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--sm-motion-fast) var(--sm-ease) 100ms;
+}
+
+button.shield:hover + .tooltip,
+button.shield:focus-visible + .tooltip {
+  opacity: 1;
+}
+
+@keyframes sm-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes sm-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button.shield { transition: opacity 120ms linear; transform: none !important; }
+  button.shield[data-sm-state="generating"] svg.spinner { animation: none; }
+}
