@@ -1,0 +1,65 @@
+name: ShieldMail
+options:
+  bundleIdPrefix: me.shld.shieldmail
+  deploymentTarget:
+    macOS: "13.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""  # Set your Apple Team ID before signing
+
+targets:
+  ShieldMail:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - "**/*.entitlements"
+    resources:
+      - path: Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.shld.shieldmail.macos
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/ShieldMail.entitlements
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        ENABLE_HARDENED_RUNTIME: YES
+    dependencies:
+      - target: ShieldMailExtension
+        embed: true
+
+  ShieldMailExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Extension
+        excludes:
+          - "**/*.entitlements"
+          - "**/Info.plist"
+    # Same script-based approach as ios/project.yml: rsync extension/dist/
+    # contents directly into the .appex bundle root.
+    postCompileScripts:
+      - name: "Copy Web Extension Resources"
+        script: |
+          DIST="${SRCROOT}/../extension/dist"
+          DEST="${TARGET_BUILD_DIR}/${PRODUCT_NAME}.appex/Contents/Resources"
+          if [ -d "$DIST" ]; then
+            mkdir -p "$DEST"
+            rsync -a "$DIST/" "$DEST/"
+            echo "Copied extension/dist → ${PRODUCT_NAME}.appex/Contents/Resources"
+          else
+            echo "error: extension/dist not found. Run: cd extension && npm run build"
+            exit 1
+          fi
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.shld.shieldmail.macos.extension
+        INFOPLIST_FILE: Extension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extension/ShieldMailExtension.entitlements
+        MACOSX_DEPLOYMENT_TARGET: "13.0"
+        ENABLE_HARDENED_RUNTIME: YES
