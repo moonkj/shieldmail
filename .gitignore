@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+.dev.vars
+wrangler.toml.local
+.wrangler/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Xcode (iOS Safari Extension Container, future M3)
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+
+# Test / coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+Thumbs.db
