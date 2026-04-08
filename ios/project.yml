@@ -1,0 +1,59 @@
+name: ShieldMail
+options:
+  bundleIdPrefix: me.shld.shieldmail
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""  # Set your Apple Team ID here
+
+targets:
+  ShieldMail:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+        excludes:
+          - "**/*.entitlements"
+    resources:
+      - path: Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.shld.shieldmail
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/ShieldMail.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"  # iPhone + iPad
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        ENABLE_PREVIEWS: YES
+    dependencies:
+      - target: ShieldMailExtension
+        embed: true
+
+  ShieldMailExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Extension
+        excludes:
+          - "**/*.entitlements"
+          - "**/Info.plist"
+    # The compiled extension/dist/ is copied as a resource bundle
+    resources:
+      - path: ../extension/dist
+        buildPhase: resources
+        type: folder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.shld.shieldmail.extension
+        INFOPLIST_FILE: Extension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Extension/ShieldMailExtension.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"
+        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.Safari.web-extension

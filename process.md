@@ -88,5 +88,38 @@
 - `router.ts`: KV 충돌 감지 + 최대 3회 재시도 로직 추가 (실패 시 503)
 - 테스트: `alias.test.ts`, `router.test.ts` 정규식 + 설명 14자로 업데이트
 
+## 2026-04-08 — R5: M3 iOS Safari Extension (진행중)
+
+### Wave 1-3: 병렬 구현 완료
+
+#### Swift Native Container (`ios/`)
+- `project.yml` — XcodeGen 설정 (ShieldMail App + ShieldMailExtension 2 타겟)
+- `App/AppDelegate.swift` + `SceneDelegate.swift` — minimal app lifecycle
+- `App/ContentView.swift` — SwiftUI "Safari에서 활성화" 온보딩 안내 (SFSafariExtensionManager 상태 감지)
+- `App/Info.plist` + `ShieldMail.entitlements` — Keychain Access Group `me.shld.shieldmail`
+- `Extension/SafariExtensionHandler.swift` — JS↔Swift 메시지 라우팅 (haptic/storeToken/getToken/storeAliases/getAliases)
+- `Extension/KeychainBridge.swift` — pollToken + 최근 alias 3개 Keychain 저장/조회 (kSecClassGenericPassword)
+- `Extension/HapticBridge.swift` — UIImpactFeedbackGenerator / UINotificationFeedbackGenerator 래퍼
+- `Extension/Info.plist` + `ShieldMailExtension.entitlements`
+
+#### iOS 전용 TypeScript (`extension/src/content/`)
+- `ios-bridge.ts` — safari.extension.dispatchMessage 래퍼 (haptic/storeToken/loadToken/appendRecentAlias)
+- `ios-injector.ts` — IOSFloatingButtonInjector (fixed 56×56px, visualViewport 키보드 추적, 6 states, haptic)
+- `index.ts` 업데이트 — isIOS() 분기: iOS→mainIOS() / macOS→mainMacOS() (focusin 추적 추가)
+
+#### 테스트
+- `test/ios-injector.test.ts` — 18 test cases (mount, state, generation, error, forceGenerate, guards)
+
+### 플랫폼 분기 전략
+- `isIOS()`: `/iPhone|iPad|iPod/.test(navigator.userAgent)` + `navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1` (iPadOS 13+)
+- iOS: `IOSFloatingButtonInjector` (fixed bottom-right, visualViewport 키보드 감지)
+- macOS: `ShieldIconInjector` (inline, 기존 코드 유지)
+
+### 교차 레이어 영향 (M3)
+- `extension/src/content/index.ts` — iOS/macOS 분기 추가, focusin 이벤트 리스너 (iOS path)
+- Keychain Access Group `me.shld.shieldmail` — App + Extension 공유
+
 ### 다음 단계
-- **M3 iOS Safari Extension** — Swift native container + iOS floating button (UX_SPEC §2 참조)
+- Wave 4: Debugger — 교차 레이어 계약 검증 (JS ↔ Swift 메시지 shape, Keychain 읽기/쓰기 경계)
+- Wave 5: Test Engineer — Xcode UI Test + TypeScript 추가 테스트
+- Wave 6: Reviewer — M3 최종 검토
