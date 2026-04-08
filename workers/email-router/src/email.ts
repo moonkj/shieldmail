@@ -23,6 +23,12 @@ export interface HandleEmailDeps {
   parseEmail?: (raw: ReadableStream<Uint8Array>) => Promise<ParsedEmailLike>;
 }
 
+// O1: Guard against CPU/memory pressure from very large HTML emails.
+// OTP codes and verify links always appear near the top of a transactional
+// email, so truncating to these limits loses nothing useful in practice.
+const MAX_HTML_CHARS = 200_000;  // ~200 KB of HTML
+const MAX_TEXT_CHARS = 50_000;   // ~50 KB of plain text
+
 /**
  * Cloudflare Email Worker handler.
  *
@@ -70,11 +76,18 @@ export async function handleEmail(
 
     // 4. Build text view for OTP scanning. Prefer text/plain; fall back to
     //    HTML→text conversion. Both views stay local.
-    const textView: string = parsed.text ?? htmlToText(parsed.html ?? "");
+    // O1: Truncate oversized inputs before any regex work to prevent CPU spikes.
+    const rawHtml = parsed.html
+      ? parsed.html.slice(0, MAX_HTML_CHARS)
+      : undefined;
+    const rawText = parsed.text
+      ? parsed.text.slice(0, MAX_TEXT_CHARS)
+      : undefined;
+    const textView: string = rawText ?? htmlToText(rawHtml ?? "");
 
     // 5. Extract.
     const otp = extractOtp(textView);
-    const verifyLinks = extractLinks(parsed.html ?? "", parsed.text ?? "");
+    const verifyLinks = extractLinks(rawHtml ?? "", rawText ?? "");
 
     // 6. Build whitelisted payload. The raw `parsed` object is intentionally
     //    NOT spread anywhere. We construct an object literal with only the
