@@ -83,7 +83,7 @@ describe("discoverForms", () => {
       '<section><h1>Create account</h1><input type="email" name="email"/></section>';
     const out = discoverForms(document);
     expect(out.length).toBeGreaterThanOrEqual(1);
-    const candidate = out[out.length - 1];
+    const candidate = out[out.length - 1]!;
     expect(candidate.emailField).not.toBeNull();
     // Should NOT be a bare <div>
     expect(candidate.form.tagName.toLowerCase()).not.toBe("div");
@@ -95,7 +95,7 @@ describe("discoverForms", () => {
     document.body.innerHTML =
       '<div><input type="email" name="email"/></div>';
     const out = discoverForms(document);
-    const cand = out[out.length - 1];
+    const cand = out[out.length - 1]!;
     expect(cand.emailField).not.toBeNull();
     // Container is the div (or body, both acceptable for the walk-up path).
     const tag = cand.form.tagName.toLowerCase();

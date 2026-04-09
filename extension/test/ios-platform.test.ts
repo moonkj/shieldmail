@@ -5,7 +5,7 @@
  * and test it directly. This ensures the branching condition is correct
  * before changes to index.ts are made.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 
 // Exact copy of isIOS() from index.ts — keep in sync.
 function isIOS(): boolean {

@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { PrivacyFooter } from "../../src/popup/components/PrivacyFooter";
-import { renderComponent, flush } from "./_render";
+import { renderComponent } from "./_render";
 import { getMessages } from "../../src/popup/i18n/index";
 
 const t = getMessages();

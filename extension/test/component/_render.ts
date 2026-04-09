@@ -1,27 +1,31 @@
 /**
  * Minimal Preact render helper (no @testing-library/preact dependency).
  */
-import { h, render, type ComponentType } from "preact";
+import { h, render } from "preact";
 import { afterEach } from "vitest";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyComponent = (props: any) => any;
 
 const roots: HTMLElement[] = [];
 
-export function renderComponent<P>(
-  Component: ComponentType<P>,
-  props: P
-): { container: HTMLElement; unmount: () => void; rerender: (next: P) => void } {
+export function renderComponent(
+  Component: AnyComponent,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: Record<string, any> = {},
+): { container: HTMLElement; unmount: () => void; rerender: (next: Record<string, unknown>) => void } {
   const container = document.createElement("div");
   document.body.appendChild(container);
   roots.push(container);
-  render(h(Component as ComponentType<unknown>, props as unknown as {}), container);
+  render(h(Component, props), container);
   return {
     container,
     unmount: () => {
       render(null, container);
       container.remove();
     },
-    rerender: (next: P) => {
-      render(h(Component as ComponentType<unknown>, next as unknown as {}), container);
+    rerender: (next) => {
+      render(h(Component, next), container);
     },
   };
 }

@@ -82,6 +82,13 @@ export const ko = {
     footer:
       "메일 내용은 저장되지 않습니다. OTP·링크만 최대 10분간 메모리에 임시 보관 후 자동 삭제됩니다.",
   },
-} as const;
+};
 
-export type Messages = typeof ko;
+// Widen literal types so en.ts can supply different strings.
+type Widen<T> = T extends string
+  ? string
+  : T extends (...args: infer A) => infer R
+    ? (...args: A) => R
+    : { [K in keyof T]: Widen<T[K]> };
+
+export type Messages = Widen<typeof ko>;

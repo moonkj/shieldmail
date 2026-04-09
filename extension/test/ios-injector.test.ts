@@ -287,7 +287,7 @@ describe("IOSFloatingButtonInjector", () => {
 // ── Position update: visualViewport null fallback ─────────────────
 
 describe("IOSFloatingButtonInjector — position with null visualViewport", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => {
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
   });
@@ -329,7 +329,7 @@ describe("IOSFloatingButtonInjector — position with null visualViewport", () =
 // ── Done → hidden transition timing ──────────────────────────────
 
 describe("IOSFloatingButtonInjector — done→hidden timing", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => {
     vi.useRealTimers();
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
@@ -349,7 +349,6 @@ describe("IOSFloatingButtonInjector — done→hidden timing", () => {
     });
     inj.show();
 
-    const host = document.querySelector<HTMLDivElement>("[data-shieldmail-ios]")!;
     let btn: HTMLButtonElement | null = null;
     for (const el of document.querySelectorAll("[data-shieldmail-ios]")) {
       const b = el.shadowRoot?.querySelector<HTMLButtonElement>(".shield-btn");
@@ -375,7 +374,7 @@ describe("IOSFloatingButtonInjector — done→hidden timing", () => {
 // ── Error → default recovery timing ──────────────────────────────
 
 describe("IOSFloatingButtonInjector — error recovery at exactly 2000ms", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => {
     vi.useRealTimers();
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());

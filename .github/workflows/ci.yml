@@ -1,0 +1,213 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs on the same ref/PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────
+  # 1. Worker — TypeScript typecheck + 132 unit/integration tests
+  # ──────────────────────────────────────────────────────────────────
+  worker:
+    name: Worker (typecheck + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: workers/email-router
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: workers/email-router/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests (unit + integration via Miniflare)
+        run: npm test
+        env:
+          # Disable Cloudflare API calls during tests.
+          CI: "true"
+
+  # ──────────────────────────────────────────────────────────────────
+  # 2. Extension — typecheck + 156 unit/component tests + production build
+  # ──────────────────────────────────────────────────────────────────
+  extension:
+    name: Extension (typecheck + tests + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: npm ci
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests (vitest + happy-dom)
+        run: npm test
+
+      - name: Production build (no demo fallback, no diag pages)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Verify production build excludes dev artifacts
+        run: |
+          set -e
+          test -f dist/popup.html
+          test -f dist/popup.js
+          test -f dist/background.js
+          test -f dist/content.js
+          test -f dist/manifest.json
+          # Production must NOT contain dev diagnostic pages.
+          if ls dist/diag-* 2>/dev/null | grep -q .; then
+            echo "ERROR: dev diagnostic files leaked into production build"
+            ls dist/diag-*
+            exit 1
+          fi
+          if ls dist/real-popup-* 2>/dev/null | grep -q .; then
+            echo "ERROR: dev real-popup-* files leaked into production build"
+            ls dist/real-popup-*
+            exit 1
+          fi
+          # Production popup.js must not contain demo: tokens.
+          if grep -q 'demo:' dist/popup.js; then
+            echo "ERROR: demo fallback path leaked into production popup.js"
+            exit 1
+          fi
+          echo "✓ production build clean"
+
+      - name: Upload extension dist as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-dist-${{ github.sha }}
+          path: extension/dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────────────────────────
+  # 3. iOS — Xcode build (unsigned smoke test)
+  # ──────────────────────────────────────────────────────────────────
+  ios-build:
+    name: iOS (xcodegen + xcodebuild)
+    runs-on: macos-15
+    needs: extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Build extension dist
+        working-directory: extension
+        run: |
+          npm ci
+          NODE_ENV=production npm run build
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Select Xcode 16+
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build (unsigned)
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ShieldMail.xcodeproj \
+            -scheme ShieldMail \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty || true
+          # Re-run without xcpretty to surface real exit code if it fails
+          xcodebuild \
+            -project ShieldMail.xcodeproj \
+            -scheme ShieldMail \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+  # ──────────────────────────────────────────────────────────────────
+  # 4. macOS — Xcode build (unsigned smoke test)
+  # ──────────────────────────────────────────────────────────────────
+  macos-build:
+    name: macOS (xcodegen + xcodebuild)
+    runs-on: macos-15
+    needs: extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Build extension dist
+        working-directory: extension
+        run: |
+          npm ci
+          NODE_ENV=production npm run build
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: macos
+        run: xcodegen generate
+
+      - name: Build (unsigned)
+        working-directory: macos
+        run: |
+          xcodebuild \
+            -project ShieldMail.xcodeproj \
+            -scheme ShieldMail \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            build

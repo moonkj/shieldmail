@@ -65,7 +65,7 @@ export class BackgroundPoller {
       aliasId,
       pollToken,
       startedAt: Date.now(),
-      nextPollAt: Date.now() + SUCCESS_SCHEDULE_MS[0],
+      nextPollAt: Date.now() + (SUCCESS_SCHEDULE_MS[0] ?? 2_000),
       attempt: 0,
       consecutiveFailures: 0,
       lastSince: 0,
