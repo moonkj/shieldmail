@@ -15,12 +15,11 @@ describe("SettingsScreen", () => {
     expect(container.textContent).toContain(t.settings.title);
   });
 
-  it("shows user mode toggle", () => {
+  it("does not show user mode toggle (removed for release)", () => {
     const navigate = vi.fn();
     const { container } = renderComponent(SettingsScreen, { navigate });
-    expect(container.textContent).toContain(t.settings.userMode);
-    expect(container.textContent).toContain(t.settings.developer);
-    expect(container.textContent).toContain(t.settings.everyday);
+    expect(container.textContent).not.toContain(t.settings.developer);
+    expect(container.textContent).not.toContain(t.settings.everyday);
   });
 
   it("shows auto-copy toggle", () => {

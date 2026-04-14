@@ -43,25 +43,6 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
       </header>
       <div class="sm-body">
         <div class="sm-settings-row">
-          <label>{t.settings.userMode}</label>
-          <div class="sm-segmented">
-            <button
-              type="button"
-              class={settings.userMode === "developer" ? "active" : ""}
-              onClick={() => void update({ userMode: "developer" })}
-            >
-              {t.settings.developer}
-            </button>
-            <button
-              type="button"
-              class={settings.userMode === "everyday" ? "active" : ""}
-              onClick={() => void update({ userMode: "everyday" })}
-            >
-              {t.settings.everyday}
-            </button>
-          </div>
-        </div>
-        <div class="sm-settings-row">
           <label>{t.settings.autoCopy}</label>
           <button
             type="button"
