@@ -85,5 +85,12 @@ export default defineConfig({
     globals: true,
     include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
     setupFiles: ["./test/setup.ts"],
+    coverage: {
+      include: ["src/**/*.ts", "src/**/*.tsx"],
+      exclude: [
+        "src/popup/index.tsx",           // Preact render entry — side effect only
+        "src/background/index.ts",       // SW entry — side effect, chrome.* registration
+      ],
+    },
   },
 });

@@ -23,7 +23,7 @@ import { findEmailLikeInput } from "./detect/forms";
 const DEBUG = false;
 
 /** Only allow http(s) URLs to prevent javascript:/data: scheme attacks. */
-function safeOpen(url: string): void {
+export function safeOpen(url: string): void {
   try {
     const parsed = new URL(url);
     if (parsed.protocol === "https:" || parsed.protocol === "http:") {
@@ -40,7 +40,7 @@ let resumedPollerTimer: ReturnType<typeof setTimeout> | null = null;
 if (DEBUG) console.debug("[ShieldMail] content script loaded");
 
 /** True on iPhone, iPad, and iPod touch (including iPadOS on M-series Macs). */
-function isIOS(): boolean {
+export function isIOS(): boolean {
   return (
     /iPhone|iPad|iPod/.test(navigator.userAgent) ||
     // iPadOS 13+ reports MacIntel but has touch support
@@ -74,7 +74,7 @@ type OtpTarget =
   | { kind: "single"; input: HTMLInputElement }
   | { kind: "split"; inputs: HTMLInputElement[] };
 
-function findOtpTarget(): OtpTarget | null {
+export function findOtpTarget(): OtpTarget | null {
   const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
   const visible = inputs.filter((i) => i.type !== "hidden" && !i.disabled && i.offsetParent !== null);
 
@@ -124,7 +124,7 @@ function findOtpInput(): HTMLInputElement | null {
   return t?.kind === "single" ? t.input : t?.kind === "split" ? t.inputs[0]! : null;
 }
 
-function fillOtp(otp: string): boolean {
+export function fillOtp(otp: string): boolean {
   const nativeSet = Object.getOwnPropertyDescriptor(
     HTMLInputElement.prototype, "value"
   )?.set;
@@ -147,7 +147,7 @@ function fillOtp(otp: string): boolean {
 }
 
 /** Broader search: any visible input that looks like it could accept an OTP. */
-function findFirstOtpLikeInput(): HTMLInputElement | null {
+export function findFirstOtpLikeInput(): HTMLInputElement | null {
   const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
   for (const input of inputs) {
     if (input.type === "hidden" || input.disabled || !input.offsetParent) continue;
@@ -167,7 +167,7 @@ function findFirstOtpLikeInput(): HTMLInputElement | null {
   return null;
 }
 
-function fillOtpField(input: HTMLInputElement, otp: string): void {
+export function fillOtpField(input: HTMLInputElement, otp: string): void {
   // Try smart fill first (handles split fields), fall back to single.
   if (!fillOtp(otp)) {
     const nativeSet = Object.getOwnPropertyDescriptor(
@@ -183,7 +183,7 @@ function fillOtpField(input: HTMLInputElement, otp: string): void {
 // ── OTP toast ──────────────────────────────────────────────────
 
 /** Copy text to clipboard (requires user gesture on iOS Safari). */
-function copyText(text: string): void {
+export function copyText(text: string): void {
   navigator.clipboard?.writeText(text).catch(() => {});
   const ta = document.createElement("textarea");
   ta.value = text;
@@ -195,7 +195,7 @@ function copyText(text: string): void {
   ta.remove();
 }
 
-function showOtpToast(otp: string): void {
+export function showOtpToast(otp: string): void {
   document.querySelectorAll("[data-shieldmail-toast],[data-shieldmail-status]").forEach(e => e.remove());
 
   const toast = document.createElement("div");

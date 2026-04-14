@@ -108,7 +108,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.unstubAllGlobals();
+  // NOTE: vi.unstubAllGlobals() is intentionally omitted here.
+  // It would remove the `chrome` global before _render.ts's afterEach can
+  // unmount Preact components, causing "chrome is not defined" in useEffect
+  // cleanup functions. The beforeEach above re-creates a fresh chrome stub
+  // each test, so stale state is never leaked.
   vi.restoreAllMocks();
   document.body.innerHTML = "";
 });
