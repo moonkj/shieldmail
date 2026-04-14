@@ -72,18 +72,7 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
             onClick={() => void update({ autoCopyOtp: !settings.autoCopyOtp })}
           />
         </div>
-        <div class="sm-settings-row">
-          <label>{t.settings.managedMode}</label>
-          <button
-            type="button"
-            class="sm-toggle"
-            data-on={settings.managedModeEnabled}
-            aria-pressed={settings.managedModeEnabled}
-            onClick={() =>
-              void update({ managedModeEnabled: !settings.managedModeEnabled })
-            }
-          />
-        </div>
+        {/* Managed Mode toggle hidden for MVP — feature deferred to post-launch */}
         <div class="sm-settings-row">
           <div>
             <label>{t.settings.apiBaseUrl}</label>

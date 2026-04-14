@@ -346,15 +346,6 @@ export function MainScreen({ navigate }: MainScreenProps) {
             <button type="button" class="sm-btn secondary" onClick={() => void handleGenerate()}>
               {t.main.generateNew}
             </button>
-            {settings.managedModeEnabled ? (
-              <button
-                type="button"
-                class="sm-btn ghost"
-                onClick={() => navigate("managed")}
-              >
-                {t.main.openManaged}
-              </button>
-            ) : null}
           </Fragment>
         )}
       </div>
