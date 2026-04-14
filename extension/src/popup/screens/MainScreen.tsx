@@ -30,6 +30,13 @@ export function MainScreen({ navigate }: MainScreenProps) {
   const [origin, setOrigin] = useState<string | null>(null);
   const [messages, setMessages] = useState<ExtractedMessage[]>([]);
   const [error, setError] = useState<ErrorCode | null>(null);
+  const [now, setNow] = useState(Date.now());
+
+  // Countdown tick for inline TTL display
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     void getActiveTabOrigin().then(setOrigin);
@@ -240,6 +247,13 @@ export function MainScreen({ navigate }: MainScreenProps) {
     }
   };
 
+  const formatCountdown = (expiresAt: number): string => {
+    const diff = Math.max(0, Math.floor((expiresAt - now) / 1000));
+    const m = Math.floor(diff / 60);
+    const s = diff % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
   const handleCopyAddress = (): void => {
     if (!activeAlias) return;
     void navigator.clipboard?.writeText(activeAlias.address);
@@ -284,35 +298,51 @@ export function MainScreen({ navigate }: MainScreenProps) {
           </Fragment>
         ) : (
           <Fragment>
-            <div class="sm-section-label">{t.main.sectionAddress}</div>
-            <div class="sm-address-box">
-              <span>{activeAlias.address}</span>
-              <button type="button" onClick={handleCopyAddress}>
-                {t.main.copy}
-              </button>
+            {/* ── Address Card ── */}
+            <div class="sm-card">
+              <div class="sm-section-label">{t.main.sectionAddress}</div>
+              <div class="sm-address-box">
+                <span>{activeAlias.address}</span>
+                <button type="button" onClick={handleCopyAddress}>
+                  {t.main.copy}
+                </button>
+              </div>
+              {activeAlias.expiresAt ? (
+                <div class="sm-ttl-inline">
+                  {t.main.ttlRemaining(formatCountdown(activeAlias.expiresAt))}
+                </div>
+              ) : null}
             </div>
-            <div class="sm-section-label">{t.main.sectionOtp}</div>
-            {latest?.otp ? (
-              <OtpBox
-                otp={latest.otp}
-                confidence={latest.confidence}
-                autoCopy={settings.autoCopyOtp}
-                messageId={latest.id}
-                onConsumed={handleConsumed}
-              />
-            ) : (
-              <LoadingSkeleton />
-            )}
-            {latest?.verifyLinks?.[0] ? (
-              <Fragment>
-                <div class="sm-section-label">{t.main.sectionVerify}</div>
-                <VerifyLinkButton
-                  url={latest.verifyLinks[0]}
-                  messageId={latest.id}
-                  onConsumed={handleConsumed}
-                />
-              </Fragment>
-            ) : null}
+
+            {/* ── OTP / Status Card ── */}
+            <div class="sm-card">
+              {latest?.otp ? (
+                <Fragment>
+                  <div class="sm-section-label">{t.main.sectionOtp}</div>
+                  <OtpBox
+                    otp={latest.otp}
+                    confidence={latest.confidence}
+                    autoCopy={settings.autoCopyOtp}
+                    messageId={latest.id}
+                    onConsumed={handleConsumed}
+                  />
+                  {latest.verifyLinks?.[0] ? (
+                    <VerifyLinkButton
+                      url={latest.verifyLinks[0]}
+                      messageId={latest.id}
+                      onConsumed={handleConsumed}
+                    />
+                  ) : null}
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <div class="sm-section-label">{t.main.waiting}</div>
+                  <LoadingSkeleton />
+                </Fragment>
+              )}
+            </div>
+
+            {/* ── Actions ── */}
             <button type="button" class="sm-btn secondary" onClick={() => void handleGenerate()}>
               {t.main.generateNew}
             </button>
@@ -328,7 +358,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
           </Fragment>
         )}
       </div>
-      <PrivacyFooter expiresAt={activeAlias?.expiresAt ?? null} />
+      <PrivacyFooter />
     </div>
   );
 }
