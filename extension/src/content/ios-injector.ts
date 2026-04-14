@@ -246,6 +246,26 @@ export class IOSFloatingButtonInjector {
     if (visible && this.state === "hidden") this.setState("default");
   }
 
+  // DEV: show error detail as a floating label below the button.
+  private showErrorDetail(msg: string): void {
+    if (!this.host) return;
+    const shadow = this.host.shadowRoot;
+    if (!shadow) return;
+    let label = shadow.querySelector<HTMLDivElement>(".error-detail");
+    if (!label) {
+      label = document.createElement("div");
+      label.className = "error-detail";
+      label.style.cssText =
+        "position:absolute;bottom:-36px;right:0;background:#ff3b30;color:#fff;" +
+        "font:11px/1.3 -apple-system,sans-serif;padding:4px 8px;border-radius:6px;" +
+        "white-space:nowrap;pointer-events:none;z-index:99999;max-width:300px;" +
+        "overflow:hidden;text-overflow:ellipsis;";
+      shadow.appendChild(label);
+    }
+    label.textContent = msg;
+    setTimeout(() => label?.remove(), 6000);
+  }
+
   private setState(s: IconState): void {
     this.state = s;
     if (!this.button) return;
@@ -286,17 +306,20 @@ export class IOSFloatingButtonInjector {
     >(msg, 8000);
 
     if (!res || (res as { ok?: boolean }).ok === false) {
+      const errMsg = (res as { error?: string })?.error ?? "unknown";
+      this.showErrorDetail(`generate failed: ${errMsg}`);
       this.setState("error");
       haptic("error");
-      setTimeout(() => this.setState("default"), 2000);
+      setTimeout(() => this.setState("default"), 4000);
       return;
     }
 
     const record = (res as { record: { aliasId: string; address: string; pollToken?: string } }).record;
     if (!record?.address) {
+      this.showErrorDetail("no record.address in response");
       this.setState("error");
       haptic("error");
-      setTimeout(() => this.setState("default"), 2000);
+      setTimeout(() => this.setState("default"), 4000);
       return;
     }
 
