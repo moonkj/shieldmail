@@ -212,8 +212,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
       const aliasId = Array.from(buf, (b) => b.toString(16).padStart(2, "0"))
         .join("")
         .slice(0, 14);
-      const domains = ["d1.shld.me", "d2.shld.me", "d3.shld.me", "d4.shld.me", "d5.shld.me"];
-      const domain = domains[Math.floor(Math.random() * domains.length)] ?? "d1.shld.me";
+      const domain = "shldmail.work";
       const record: AliasRecord = {
         aliasId,
         address: `${aliasId}@${domain}`,

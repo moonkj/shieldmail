@@ -28,9 +28,20 @@ void (async () => {
 chrome.runtime.onInstalled.addListener((details) => {
   void (async () => {
     await initSettingsIfAbsent();
-    // Single allowed debug line per spec.
     console.log("[shieldmail] installed", details.reason);
-    // Lazy migration: move managed aliases to IndexedDB on update.
+
+    // Domain migration: clear stale aliases + reset apiBaseUrl on every install/update.
+    // Old aliases used @shld.me or @d*.shldmail.work (defunct domains).
+    try {
+      await chrome.storage.local.remove(["activeAliases", "managedAliases", "activePollers"]);
+      // Force apiBaseUrl to current default.
+      const stored = (await chrome.storage.local.get("settings")) as { settings?: Record<string, unknown> };
+      if (stored.settings) {
+        stored.settings.apiBaseUrl = "https://api.shldmail.work";
+        await chrome.storage.local.set({ settings: stored.settings });
+      }
+    } catch { /* non-fatal */ }
+
     if (details.reason === "update") {
       try { await migrateToIndexedDb(); } catch { /* non-fatal */ }
     }
