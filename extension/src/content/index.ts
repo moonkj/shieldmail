@@ -50,8 +50,66 @@ function loadSettings(): void {
   }
 }
 
+// ── OTP input field detection ──────────────────────────────────
+
+const OTP_FIELD_HINTS = /otp|code|verify|verif|token|pin|인증|확인/i;
+
+function findOtpInput(): HTMLInputElement | null {
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
+  for (const input of inputs) {
+    if (input.type === "hidden" || input.disabled) continue;
+    // Explicit autocomplete signal (highest confidence)
+    const ac = (input.getAttribute("autocomplete") ?? "").toLowerCase();
+    if (ac === "one-time-code") return input;
+    // inputmode="numeric" + short maxLength (4-8 digits)
+    const im = input.inputMode ?? (input.getAttribute("inputmode") ?? "");
+    const ml = input.maxLength;
+    if (im === "numeric" && ml >= 4 && ml <= 8) return input;
+    // Heuristic: name/id/placeholder hint
+    const hay = `${input.name} ${input.id} ${input.placeholder} ${input.getAttribute("aria-label") ?? ""}`;
+    if (OTP_FIELD_HINTS.test(hay)) return input;
+  }
+  return null;
+}
+
+function fillOtpField(input: HTMLInputElement, otp: string): void {
+  // Use the React-compatible value setter to trigger controlled components.
+  const nativeSet = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype, "value"
+  )?.set;
+  if (nativeSet) nativeSet.call(input, otp);
+  else input.value = otp;
+  input.dispatchEvent(new InputEvent("input", { bubbles: true, cancelable: true, inputType: "insertText", data: otp }));
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+// ── OTP auto-fill listener ──────────────────────────────────────
+
+function setupOtpAutoFill(): void {
+  try {
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (!msg || typeof msg !== "object") return;
+      // Listen for FETCH_MESSAGES_RESULT broadcast from background poller.
+      if (msg.type === "FETCH_MESSAGES_RESULT" && msg.ok === true) {
+        const messages = msg.messages as Array<{ otp?: string }> | undefined;
+        const otp = messages?.[0]?.otp;
+        if (!otp || !settings.autoCopyOtp) return;
+        // Find OTP input field on the page and auto-fill.
+        const field = findOtpInput();
+        if (field) {
+          fillOtpField(field, otp);
+          if (DEBUG) console.debug("[ShieldMail] auto-filled OTP into", field);
+        }
+      }
+    });
+  } catch {
+    /* chrome.runtime may not be available in all contexts */
+  }
+}
+
 function main(): void {
   loadSettings();
+  setupOtpAutoFill();
 
   const getMode = () => (settings.managedModeEnabled ? "managed" : "ephemeral");
 
