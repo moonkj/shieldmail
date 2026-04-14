@@ -63,7 +63,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   userMode: "developer",
   autoCopyOtp: true,
   managedModeEnabled: false,
-  // Cloudflare Workers default route until shld.me zone is added.
-  apiBaseUrl: "https://shieldmail-email-router.relink-app.workers.dev",
+  apiBaseUrl: "https://api.shldmail.work",
   detectionThreshold: 0.7,
 };
