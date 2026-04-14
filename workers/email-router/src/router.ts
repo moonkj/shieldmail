@@ -89,7 +89,15 @@ export function buildRouter(): Hono<RouterCtx> {
         ? body.deviceId
         : undefined;
     let tier: "free" | "pro" = "free";
-    if (typeof body.subscriptionJWS === "string" && body.subscriptionJWS.length > 0) {
+    // Admin override: check KV for admin-set tier, then ADMIN_IDS env.
+    const adminIds = (env.ADMIN_IDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
+    const isAdmin = adminIds.includes(clientIp) || (deviceId != null && adminIds.includes(deviceId));
+    if (isAdmin) {
+      // Check if admin has explicitly set a tier (for testing free vs pro).
+      const kvTier = await env.ALIAS_KV.get(`admin-tier:${clientIp}`)
+        ?? (deviceId ? await env.ALIAS_KV.get(`admin-tier:${deviceId}`) : null);
+      tier = kvTier === "free" ? "free" : "pro"; // default pro for admins
+    } else if (typeof body.subscriptionJWS === "string" && body.subscriptionJWS.length > 0) {
       const jwsResult = await verifyAppleJWS(body.subscriptionJWS);
       if (jwsResult.valid && jwsResult.productId === "me.shld.shieldmail.pro.monthly") {
         tier = "pro";
@@ -317,6 +325,38 @@ export function buildRouter(): Hono<RouterCtx> {
     await c.env.ALIAS_KV.delete(`alias:${auth.aliasId}`);
 
     return c.json({ ok: true });
+  });
+
+  // ──────────────────────────────────────────
+  // GET /admin/check?deviceId=xxx
+  // Returns { admin: true/false } — used by extension settings to show admin toggle.
+  // ──────────────────────────────────────────
+  app.get("/admin/check", (c) => {
+    const env = c.env;
+    const clientIp = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+    const deviceId = c.req.query("deviceId") ?? "";
+    const adminIds = (env.ADMIN_IDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
+    const isAdmin = adminIds.includes(clientIp) || (deviceId.length > 0 && adminIds.includes(deviceId));
+    return c.json({ admin: isAdmin });
+  });
+
+  // ──────────────────────────────────────────
+  // POST /admin/set-tier  { deviceId, tier: "free"|"pro" }
+  // Admin-only: override tier for testing. Stores in KV.
+  // ──────────────────────────────────────────
+  app.post("/admin/set-tier", async (c) => {
+    const env = c.env;
+    const clientIp = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
+    let body: { deviceId?: string; tier?: string } = {};
+    try { body = await c.req.json(); } catch {}
+    const deviceId = typeof body.deviceId === "string" ? body.deviceId : "";
+    const adminIds = (env.ADMIN_IDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
+    const isAdmin = adminIds.includes(clientIp) || (deviceId.length > 0 && adminIds.includes(deviceId));
+    if (!isAdmin) return c.json({ error: "not_admin" }, 403);
+    const newTier = body.tier === "pro" ? "pro" : "free";
+    await env.ALIAS_KV.put(`admin-tier:${clientIp}`, newTier, { expirationTtl: 86400 });
+    if (deviceId) await env.ALIAS_KV.put(`admin-tier:${deviceId}`, newTier, { expirationTtl: 86400 });
+    return c.json({ ok: true, tier: newTier });
   });
 
   // Health.

@@ -429,7 +429,13 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if ((msg as { type?: string })?.type === "GET_ACTIVE_ALIAS") {
       const alias = getLastGeneratedAlias();
-      sendResponse(alias ? { ok: true, record: alias } : { ok: false });
+      // Include usage data from sessionStorage so popup can display it.
+      let usage: { remaining?: number; limit?: number; tier?: string } = {};
+      try {
+        const raw = sessionStorage.getItem("__sm_usage__");
+        if (raw) usage = JSON.parse(raw);
+      } catch {}
+      sendResponse(alias ? { ok: true, record: alias, usage } : { ok: false });
       return false;
     }
     return undefined;

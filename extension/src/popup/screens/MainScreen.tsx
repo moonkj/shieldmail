@@ -66,10 +66,20 @@ export function MainScreen({ navigate }: MainScreenProps) {
         const tabId = await getActiveTabId();
         if (!tabId) return;
         const resp = await chrome.tabs.sendMessage(tabId, { type: "GET_ACTIVE_ALIAS" }) as
-          | { ok: true; record: AliasRecord }
+          | { ok: true; record: AliasRecord; usage?: { remaining?: number; limit?: number; tier?: string } }
           | { ok: false };
         if (resp?.ok && resp.record?.address) {
           setContentAlias(resp.record);
+          // Sync usage from content script.
+          if (resp.usage) {
+            if (typeof resp.usage.remaining === "number" && typeof resp.usage.limit === "number") {
+              setUsageUsed(resp.usage.limit - resp.usage.remaining);
+              setUsageLimit(resp.usage.limit);
+            }
+            if (resp.usage.tier === "free" || resp.usage.tier === "pro") {
+              setUsageTier(resp.usage.tier);
+            }
+          }
           // Also save to storage so polling and other features work.
           if (chrome.storage?.local) {
             const cur = (await chrome.storage.local.get("activeAliases")) as {
@@ -313,12 +323,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
             <LoadingSkeleton />
           </div>
         ) : !activeAlias ? (
-          <Fragment>
-            <p class="sm-empty">{t.main.emptyState}</p>
-            <button type="button" class="sm-btn" onClick={() => void handleGenerate()}>
-              {t.main.generateNew}
-            </button>
-          </Fragment>
+          <p class="sm-empty">{t.main.emptyState}</p>
         ) : (
           <Fragment>
             {/* ── Address Card ── */}
@@ -365,10 +370,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
               )}
             </div>
 
-            {/* ── Actions ── */}
-            <button type="button" class="sm-btn secondary" onClick={() => void handleGenerate()}>
-              {t.main.generateNew}
-            </button>
+            {/* Generate removed — alias is created via shield button only */}
           </Fragment>
         )}
       </div>

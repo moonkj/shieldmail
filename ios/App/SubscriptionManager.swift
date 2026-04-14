@@ -80,10 +80,6 @@ final class SubscriptionManager: ObservableObject {
             @unknown default:
                 errorMessage = "알 수 없는 결제 결과입니다."
             }
-        } catch StoreKitError.notAvailable {
-            errorMessage = "이 기기에서는 인앱 구매를 사용할 수 없습니다."
-        } catch StoreKitError.notEntitled {
-            errorMessage = "구매 권한이 없습니다."
         } catch {
             errorMessage = "결제 중 오류가 발생했습니다: \(error.localizedDescription)"
         }
@@ -178,7 +174,7 @@ final class SubscriptionManager: ObservableObject {
 
         tier = "pro"
         persistToAppGroup(
-            jws: transaction.jwsRepresentation,
+            jws: String(transaction.id),
             productId: transaction.productID,
             expiresDate: transaction.expirationDate
         )
@@ -194,7 +190,7 @@ final class SubscriptionManager: ObservableObject {
             } else {
                 tier = "pro"
                 persistToAppGroup(
-                    jws: transaction.jwsRepresentation,
+                    jws: String(transaction.id),
                     productId: transaction.productID,
                     expiresDate: transaction.expirationDate
                 )
