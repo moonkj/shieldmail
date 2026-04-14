@@ -64,13 +64,11 @@ export default defineConfig({
     sourcemap: process.env["NODE_ENV"] !== "production",
     rollupOptions: {
       input: {
-        // background service worker: manifest declares "type": "module",
-        // so ES module format is correct here.
-        background: resolve(__dirname, "src/background/index.ts"),
-        // popup: built separately by vite.popup.config.ts (IIFE).
-        // content: built separately by vite.content.config.ts (IIFE).
-        // Content scripts are injected as classic scripts — ES module
-        // import statements cause SyntaxError. See vite.content.config.ts.
+        // All three entry points are now built as IIFE by separate configs:
+        //   vite.background.config.ts — background event page (iOS uses scripts[], not service_worker)
+        //   vite.content.config.ts    — content script (injected as classic <script>)
+        //   vite.popup.config.ts      — popup (loaded via <script defer>)
+        // This main config only handles shared public/ assets copy + dev-public gate.
       },
       output: {
         entryFileNames: "[name].js",
