@@ -111,6 +111,7 @@ export function buildRouter(): Hono<RouterCtx> {
     let pollToken = "";
     let tokenHash = "";
     let record!: AliasRecord;
+    let success = false;
     const MAX_ATTEMPTS = 3;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       aliasId = generateAliasId();
@@ -139,10 +140,11 @@ export function buildRouter(): Hono<RouterCtx> {
       } else {
         await env.ALIAS_KV.put(`alias:${aliasId}`, JSON.stringify(record));
       }
+      success = true;
       break;
     }
 
-    if (!aliasId) {
+    if (!success) {
       return c.json({ error: "alias_generation_failed" }, 503);
     }
 

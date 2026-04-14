@@ -25,6 +25,29 @@ import { haptic, appendRecentAlias } from "../src/content/ios-bridge";
 
 // ── Helpers ────────────────────────────────────────────────────
 
+/** Build a successful fetch Response mock for alias generation. */
+function mockFetchSuccess(address: string, aliasId = "abc12345678901") {
+  return vi.fn().mockResolvedValueOnce({
+    ok: true,
+    json: () =>
+      Promise.resolve({
+        aliasId,
+        address,
+        expiresAt: null,
+        pollToken: "tok_test",
+      }),
+  } as unknown as Response);
+}
+
+/** Build a failing fetch Response mock. */
+function mockFetchFailure(status = 500) {
+  return vi.fn().mockResolvedValueOnce({
+    ok: false,
+    status,
+    json: () => Promise.resolve({}),
+  } as unknown as Response);
+}
+
 function makeInjector(mode: "ephemeral" | "managed" = "ephemeral") {
   let currentInput: HTMLInputElement | null = null;
   const injector = new IOSFloatingButtonInjector({
@@ -117,12 +140,8 @@ describe("IOSFloatingButtonInjector", () => {
   // ── Successful generation ─────────────────────────────────────
 
   it("transitions to generating then done on successful alias generation", async () => {
-    const mockSend = vi.mocked(sendMessage);
-    mockSend.mockResolvedValueOnce({
-      type: "GENERATE_ALIAS_RESULT",
-      ok: true,
-      record: { aliasId: "abc12345678901", address: "abc12345678901@d1.shld.me" },
-    });
+    const address = "abc12345678901@d1.shld.me";
+    globalThis.fetch = mockFetchSuccess(address);
 
     const input = document.createElement("input");
     input.type = "email";
@@ -149,39 +168,36 @@ describe("IOSFloatingButtonInjector", () => {
 
     // Alias persisted
     expect(appendRecentAlias).toHaveBeenCalledWith(
-      expect.objectContaining({ address: "abc12345678901@d1.shld.me" })
+      expect.objectContaining({ address })
     );
 
     // Field filled
-    expect(input.value).toBe("abc12345678901@d1.shld.me");
+    expect(input.value).toBe(address);
 
     document.body.removeChild(input);
   });
 
-  it("sends GENERATE_ALIAS with correct mode and origin", async () => {
-    const mockSend = vi.mocked(sendMessage);
-    mockSend.mockResolvedValueOnce({
-      type: "GENERATE_ALIAS_RESULT",
-      ok: true,
-      record: { aliasId: "xyzabc12345678", address: "xyzabc12345678@d2.shld.me" },
-    });
+  it("sends fetch request with correct mode in body", async () => {
+    const address = "xyzabc12345678@d2.shld.me";
+    const fetchMock = mockFetchSuccess(address, "xyzabc12345678");
+    globalThis.fetch = fetchMock;
 
     const { injector } = makeInjector("managed");
     injector.show();
     queryButton()!.click();
 
-    await vi.waitFor(() => expect(mockSend).toHaveBeenCalled());
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalled());
 
-    const [msg] = mockSend.mock.calls[0] as [{ type: string; mode: string; origin: string }];
-    expect(msg.type).toBe("GENERATE_ALIAS");
-    expect(msg.mode).toBe("managed");
-    expect(msg.origin).toBe(location.origin);
+    const [url, opts] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain("/alias/generate");
+    const body = JSON.parse(opts.body as string);
+    expect(body.mode).toBe("managed");
   });
 
   // ── Error handling ────────────────────────────────────────────
 
-  it("transitions to error state when API returns ok: false", async () => {
-    vi.mocked(sendMessage).mockResolvedValueOnce({ ok: false, error: "network_error" });
+  it("transitions to error state when API returns non-ok response", async () => {
+    globalThis.fetch = mockFetchFailure(500);
 
     const { injector } = makeInjector();
     injector.show();
@@ -193,8 +209,8 @@ describe("IOSFloatingButtonInjector", () => {
     expect(haptic).toHaveBeenCalledWith("error");
   });
 
-  it("transitions to error when sendMessage resolves null", async () => {
-    vi.mocked(sendMessage).mockResolvedValueOnce(null);
+  it("transitions to error when fetch throws", async () => {
+    globalThis.fetch = vi.fn().mockRejectedValueOnce(new Error("network"));
 
     const { injector } = makeInjector();
     injector.show();
@@ -205,9 +221,9 @@ describe("IOSFloatingButtonInjector", () => {
     });
   });
 
-  it("error state auto-resets to default after 2s", async () => {
+  it("error state auto-resets to default after 4s", async () => {
     vi.useFakeTimers();
-    vi.mocked(sendMessage).mockResolvedValueOnce({ ok: false, error: "fail" });
+    globalThis.fetch = mockFetchFailure(500);
 
     const { injector } = makeInjector();
     injector.show();
@@ -217,7 +233,7 @@ describe("IOSFloatingButtonInjector", () => {
       expect(queryButton()?.getAttribute("data-state")).toBe("error");
     });
 
-    vi.advanceTimersByTime(2100);
+    vi.advanceTimersByTime(4100);
     expect(queryButton()?.getAttribute("data-state")).toBe("default");
     vi.useRealTimers();
   });
@@ -225,11 +241,7 @@ describe("IOSFloatingButtonInjector", () => {
   // ── forceGenerate path ────────────────────────────────────────
 
   it("forceGenerate mounts button and triggers generation", async () => {
-    vi.mocked(sendMessage).mockResolvedValueOnce({
-      type: "GENERATE_ALIAS_RESULT",
-      ok: true,
-      record: { aliasId: "force56789012", address: "force56789012@d1.shld.me" },
-    });
+    globalThis.fetch = mockFetchSuccess("force56789012@d1.shld.me", "force56789012");
 
     const { injector } = makeInjector();
     injector.forceGenerate();
@@ -243,9 +255,8 @@ describe("IOSFloatingButtonInjector", () => {
   // ── Guards ────────────────────────────────────────────────────
 
   it("ignores duplicate activation while generating", async () => {
-    const mockSend = vi.mocked(sendMessage);
-    // First call hangs
-    mockSend.mockReturnValueOnce(new Promise(() => {}));
+    const fetchMock = vi.fn().mockReturnValueOnce(new Promise(() => {}));
+    globalThis.fetch = fetchMock;
 
     const { injector } = makeInjector();
     injector.show();
@@ -253,7 +264,7 @@ describe("IOSFloatingButtonInjector", () => {
     btn.click(); // starts generating
     btn.click(); // should be ignored
 
-    expect(mockSend).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   // ── FORCE_INJECT message shape (BLOCKER-2 regression) ────────
@@ -326,22 +337,27 @@ describe("IOSFloatingButtonInjector — position with null visualViewport", () =
   });
 });
 
-// ── Done → hidden transition timing ──────────────────────────────
+// ── Done → polling transition timing ──────────────────────────────
 
-describe("IOSFloatingButtonInjector — done→hidden timing", () => {
+describe("IOSFloatingButtonInjector — done→polling timing", () => {
   beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => {
     vi.useRealTimers();
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
   });
 
-  it("transitions to hidden state after 1200ms done + 300ms fade", async () => {
+  it("transitions to polling state after 1200ms done", async () => {
     vi.useFakeTimers();
-    vi.mocked(sendMessage).mockResolvedValueOnce({
-      type: "GENERATE_ALIAS_RESULT",
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
       ok: true,
-      record: { aliasId: "done12345678901", address: "done12345678901@d.shld.me" },
-    });
+      json: () =>
+        Promise.resolve({
+          aliasId: "done12345678901",
+          address: "done12345678901@d.shld.me",
+          expiresAt: null,
+          pollToken: "tok_test",
+        }),
+    } as unknown as Response);
 
     const inj = new IOSFloatingButtonInjector({
       getMode: () => "ephemeral",
@@ -362,27 +378,28 @@ describe("IOSFloatingButtonInjector — done→hidden timing", () => {
     vi.advanceTimersByTime(1100);
     expect(btn!.getAttribute("data-state")).toBe("done");
 
-    // After 1200ms (fade starts)
-    vi.advanceTimersByTime(100);
-
-    // After additional 300ms fade-out
-    vi.advanceTimersByTime(300);
-    expect(btn!.getAttribute("data-state")).toBe("hidden");
+    // After 1200ms — transitions to polling
+    vi.advanceTimersByTime(200);
+    expect(btn!.getAttribute("data-state")).toBe("polling");
   });
 });
 
 // ── Error → default recovery timing ──────────────────────────────
 
-describe("IOSFloatingButtonInjector — error recovery at exactly 2000ms", () => {
+describe("IOSFloatingButtonInjector — error recovery at exactly 4000ms", () => {
   beforeEach(() => { vi.clearAllMocks(); });
   afterEach(() => {
     vi.useRealTimers();
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
   });
 
-  it("recovers from error to default after 2000ms", async () => {
+  it("recovers from error to default after 4000ms", async () => {
     vi.useRealTimers(); // real timers — fake timers + waitFor races
-    vi.mocked(sendMessage).mockResolvedValueOnce({ ok: false, error: "fail" });
+    globalThis.fetch = vi.fn().mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({}),
+    } as unknown as Response);
 
     const inj = new IOSFloatingButtonInjector({
       getMode: () => "ephemeral",
@@ -410,8 +427,8 @@ describe("IOSFloatingButtonInjector — error recovery at exactly 2000ms", () =>
     });
     expect(btn!.getAttribute("data-state")).toBe("error");
 
-    // Wait > 2s for auto-recovery
-    await new Promise((r) => setTimeout(r, 2100));
+    // Wait > 4s for auto-recovery
+    await new Promise((r) => setTimeout(r, 4100));
     expect(btn!.getAttribute("data-state")).toBe("default");
   });
 });

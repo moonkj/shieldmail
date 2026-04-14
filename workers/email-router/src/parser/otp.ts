@@ -210,6 +210,8 @@ function keywordAnchorExtract(text: string): OtpResult | null {
       if (REJECT_TOKEN_RE.test(normalised)) continue;
       // Reject date-like numbers.
       if (YEAR_RE.test(normalised) || DATE8_RE.test(normalised)) continue;
+      // 6-digit YYYYMM guard (e.g. "202403")
+      if (/^\d{6}$/.test(normalised) && /^(?:19|20)\d{2}(?:0[1-9]|1[0-2])$/.test(normalised)) continue;
       // Prefer the token closest to the keyword.
       const dist = Math.abs(m.index - (kwIndex - start));
       if (!bestToken || dist < bestToken.distance) {

@@ -181,39 +181,51 @@ export function setVerifyLinkCallback(cb: (url: string) => void): void {
   onVerifyLink = cb;
 }
 
+/** Module-level timer for OTP poller — prevents duplicate polling chains. */
+let otpPollerTimer: ReturnType<typeof setTimeout> | null = null;
+
 /**
  * Poll the Worker API for OTP messages directly from the content script.
  * No popup or background SW needed. Stops after OTP found or 5 min timeout.
+ * Cancels any previously running poller before starting a new one.
  */
 function startOtpPoller(aliasId: string, pollToken: string): void {
+  // Cancel any existing poller to prevent duplicate chains.
+  if (otpPollerTimer !== null) {
+    clearTimeout(otpPollerTimer);
+    otpPollerTimer = null;
+  }
+
   const apiBase = "https://api.shldmail.work";
   const maxMs = 5 * 60 * 1000; // 5 min
   const start = Date.now();
 
   const poll = async (): Promise<void> => {
-    if (Date.now() - start > maxMs) return; // timeout
+    if (Date.now() - start > maxMs) { otpPollerTimer = null; return; } // timeout
     try {
       const resp = await fetch(
         `${apiBase}/alias/${encodeURIComponent(aliasId)}/messages`,
         { headers: { authorization: `Bearer ${pollToken}` } },
       );
-      if (!resp.ok) { setTimeout(poll, 3000); return; }
+      if (!resp.ok) { otpPollerTimer = setTimeout(poll, 3000); return; }
       const data = (await resp.json()) as {
         messages: Array<{ otp?: string; verifyLinks?: string[]; id: string }>;
         expired: boolean;
       };
-      if (data.expired) return;
+      if (data.expired) { otpPollerTimer = null; return; }
       const msg = data.messages?.[0];
       if (msg?.otp) {
+        otpPollerTimer = null;
         onOtpReceived?.(msg.otp);
         return; // done
       }
       if (msg?.verifyLinks?.[0]) {
+        otpPollerTimer = null;
         onVerifyLink?.(msg.verifyLinks[0]);
         return; // done
       }
     } catch { /* retry */ }
-    setTimeout(poll, 3000);
+    otpPollerTimer = setTimeout(poll, 3000);
   };
 
   void poll();
@@ -419,6 +431,7 @@ export class IOSFloatingButtonInjector {
     // Direct API call — bypasses background SW (unreliable on iOS Safari).
     // Content scripts have fetch() access via host_permissions.
     let address = "";
+    let generatedAliasId = "";
     try {
       const apiBase = "https://api.shldmail.work";
       const mode = this.deps.getMode();
@@ -435,6 +448,7 @@ export class IOSFloatingButtonInjector {
         pollToken: string;
       };
       address = data.address;
+      generatedAliasId = data.aliasId;
       if (!address) throw new Error("no address");
 
       // Store in memory + sessionStorage so polling survives page navigations.
@@ -474,7 +488,7 @@ export class IOSFloatingButtonInjector {
       return;
     }
 
-    const record = { aliasId: "", address };
+    const record = { aliasId: generatedAliasId, address };
 
     if (input) {
       this.fillField(input, record.address);

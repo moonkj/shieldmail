@@ -137,7 +137,7 @@ export async function handleEmail(
     // Nothing else references them.
   } catch (e) {
     // Silent drop: do NOT bounce, do NOT leak.
-    console.warn(`[email] processing_failed: ${e instanceof Error ? e.message : "unknown"}`);
+    console.warn("[email] processing_failed");
     return;
   }
 }

@@ -22,6 +22,21 @@ import { findEmailLikeInput } from "./detect/forms";
 
 const DEBUG = false;
 
+/** Only allow http(s) URLs to prevent javascript:/data: scheme attacks. */
+function safeOpen(url: string): void {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+      window.open(url, "_blank", "noopener");
+    }
+  } catch {
+    /* malformed URL — ignore */
+  }
+}
+
+/** Timer id for the resumed OTP poller so we can cancel it to avoid duplicates. */
+let resumedPollerTimer: ReturnType<typeof setTimeout> | null = null;
+
 if (DEBUG) console.debug("[ShieldMail] content script loaded");
 
 /** True on iPhone, iPad, and iPod touch (including iPadOS on M-series Macs). */
@@ -194,9 +209,16 @@ function showOtpToast(otp: string): void {
     "box-shadow:0 4px 16px rgba(0,0,0,0.4)",
   ].join(";");
 
-  toast.innerHTML =
-    '<div style="font-size:10px;color:#888;margin-bottom:2px">인증 코드</div>' +
-    '<div style="font-size:20px;font-weight:800;letter-spacing:3px;color:#0f0">' + otp + '</div>';
+  const label = document.createElement("div");
+  label.style.cssText = "font-size:10px;color:#888;margin-bottom:2px";
+  label.textContent = "인증 코드";
+
+  const code = document.createElement("div");
+  code.style.cssText = "font-size:20px;font-weight:800;letter-spacing:3px;color:#0f0";
+  code.textContent = otp;
+
+  toast.appendChild(label);
+  toast.appendChild(code);
 
   document.body.appendChild(toast);
 
@@ -286,18 +308,23 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
 
   // Verify link: open in a new tab when no OTP but a verify link arrives.
   setVerifyLinkCallback((url) => {
-    window.open(url, "_blank", "noopener");
+    safeOpen(url);
     iosInjector.hideButton();
   });
 
   // Resume OTP polling if alias was persisted from a previous page.
   const persisted = restorePersistedAlias();
   if (persisted?.pollToken && persisted?.aliasId) {
+    // Cancel any previously running resumed poller to prevent duplicate chains.
+    if (resumedPollerTimer !== null) {
+      clearTimeout(resumedPollerTimer);
+      resumedPollerTimer = null;
+    }
     const apiBase = "https://api.shldmail.work";
     const maxMs = 5 * 60 * 1000;
     const start = Date.now();
     const resumePoll = async (): Promise<void> => {
-      if (Date.now() - start > maxMs) return;
+      if (Date.now() - start > maxMs) { resumedPollerTimer = null; return; }
       try {
         const resp = await fetch(
           `${apiBase}/alias/${encodeURIComponent(persisted.aliasId)}/messages`,
@@ -309,23 +336,25 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
             messages: Array<{ otp?: string; verifyLinks?: string[]; id: string }>;
             expired: boolean;
           };
-          if (data.expired) return;
+          if (data.expired) { resumedPollerTimer = null; return; }
           const msg = data.messages?.[0];
           if (msg?.otp) {
             showOtpToast(msg.otp);
             try { sessionStorage.removeItem("__sm_alias__"); } catch {}
+            resumedPollerTimer = null;
             return;
           }
           if (msg?.verifyLinks?.[0]) {
-            window.open(msg.verifyLinks[0], "_blank", "noopener");
+            safeOpen(msg.verifyLinks[0]);
             try { sessionStorage.removeItem("__sm_alias__"); } catch {}
+            resumedPollerTimer = null;
             return;
           }
         }
-      } catch (e) {
+      } catch {
         /* retry */
       }
-      setTimeout(resumePoll, 3000);
+      resumedPollerTimer = setTimeout(resumePoll, 3000);
     };
     void resumePoll();
   }

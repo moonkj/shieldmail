@@ -1,192 +1,162 @@
 import SwiftUI
 import UIKit
 
-/// Minimal container app UI.
-/// The real product experience lives in the Safari Extension.
-/// This screen guides the user to activate the extension in Safari settings.
+/// Container app — onboarding + feature guide.
 struct ContentView: View {
-    @State private var extensionEnabled = false
-
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 32) {
-                    // Logo
-                    VStack(spacing: 12) {
-                        Image("shield-mail-color")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 80, height: 80)
-                            .accessibility(hidden: true)
+                VStack(spacing: 28) {
+                    // Hero
+                    VStack(spacing: 10) {
+                        // Shield icon (SF Symbol fallback — real icon in AppIcon)
+                        Image(systemName: "shield.checkered")
+                            .font(.system(size: 56, weight: .medium))
+                            .foregroundStyle(Color(red: 0, green: 0.831, blue: 0.667))
+                            .padding(.top, 52)
 
                         Text("ShieldMail")
                             .font(.largeTitle.bold())
 
-                        Text("가입 스트레스를 제거하는 자동화 인프라")
+                        Text("탭 한 번으로 임시 이메일 생성 + 인증 코드 자동 수신")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
                     }
-                    .padding(.top, 48)
 
-                    // Status banner
-                    statusBanner
-
-                    // Setup steps
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("시작하기")
+                    // How it works
+                    VStack(alignment: .leading, spacing: 20) {
+                        Text("이렇게 동작합니다")
                             .font(.headline)
+                            .padding(.horizontal, 24)
 
-                        SetupStep(
-                            number: 1,
-                            title: "Safari 설정 열기",
-                            description: "Safari → 설정 → 확장 프로그램 탭",
-                            icon: "safari",
-                            done: extensionEnabled
+                        FeatureRow(
+                            icon: "shield.lefthalf.filled",
+                            color: Color(red: 0, green: 0.831, blue: 0.667),
+                            title: "방패 버튼 탭",
+                            detail: "가입 페이지의 이메일 입력칸에 방패 아이콘이 나타납니다.\n탭하면 임시 이메일 주소가 자동으로 입력됩니다."
                         )
 
-                        SetupStep(
-                            number: 2,
-                            title: "ShieldMail 활성화",
-                            description: "ShieldMail 옆 토글을 켜고\n\"모든 웹사이트 허용\" 선택",
-                            icon: "checkmark.shield",
-                            done: extensionEnabled
+                        FeatureRow(
+                            icon: "envelope.badge",
+                            color: .blue,
+                            title: "인증 코드 자동 수신",
+                            detail: "사이트에서 보낸 인증 코드를 자동으로 감지합니다.\n숫자, 영문, 하이픈 등 어떤 형식이든 추출합니다."
                         )
 
-                        SetupStep(
-                            number: 3,
-                            title: "이메일 가입 시 방패 아이콘 탭",
-                            description: "이메일 필드 오른쪽 아래에 🛡 아이콘이 나타납니다",
-                            icon: "envelope.badge.shield.half.filled",
-                            done: false
+                        FeatureRow(
+                            icon: "number.square",
+                            color: .orange,
+                            title: "코드 자동 입력 또는 토스트 표시",
+                            detail: "코드 입력칸이 하나면 자동 입력됩니다.\n한 칸씩 분리된 필드는 화면에 코드가 표시되어\n보고 직접 입력할 수 있습니다."
+                        )
+
+                        FeatureRow(
+                            icon: "link",
+                            color: .purple,
+                            title: "인증 링크 자동 열기",
+                            detail: "코드 대신 인증 링크를 보내는 사이트는\n자동으로 새 탭에서 링크가 열립니다."
+                        )
+
+                        FeatureRow(
+                            icon: "clock.badge.checkmark",
+                            color: .gray,
+                            title: "자동 만료",
+                            detail: "임시 이메일 주소는 1시간 후 자동 삭제됩니다.\n메일 내용은 10분 후 자동 삭제됩니다."
                         )
                     }
-                    .padding(.horizontal, 24)
 
-                    // Open Safari Settings button
-                    Button {
-                        openExtensionSettings()
-                    } label: {
-                        Label("Safari 확장 설정 열기", systemImage: "safari")
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
+                    Divider().padding(.horizontal, 24)
+
+                    // Setup
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("처음 사용하기")
+                            .font(.headline)
+                            .padding(.horizontal, 24)
+
+                        SetupStep(number: 1, title: "Safari 설정 열기",
+                                  detail: "설정 → Safari → 확장 프로그램")
+                        SetupStep(number: 2, title: "ShieldMail 켜기",
+                                  detail: "토글 ON + \"모든 웹사이트 허용\" 선택")
+                        SetupStep(number: 3, title: "아무 가입 페이지 방문",
+                                  detail: "이메일 입력칸 근처에 방패 아이콘이 나타납니다")
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0, green: 0.478, blue: 1.0)) // #007AFF
-                    .padding(.horizontal, 24)
 
-                    // Privacy note
-                    VStack(spacing: 4) {
-                        Label("메일 내용은 저장되지 않습니다", systemImage: "lock.shield")
-                            .font(.caption)
+                    // Privacy
+                    VStack(spacing: 6) {
+                        Label("개인정보 보호", systemImage: "lock.shield")
+                            .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
-                        Text("OTP와 링크만 10분간 메모리에 보관 후 자동 삭제")
+                        Text("이메일 내용은 저장하지 않습니다.\nOTP와 링크만 10분간 메모리에 보관 후 자동 삭제됩니다.\n비밀번호, 개인정보는 절대 수집하지 않습니다.")
                             .font(.caption2)
                             .foregroundStyle(Color(.tertiaryLabel))
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(.bottom, 32)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 40)
                 }
             }
             .navigationBarHidden(true)
-            .onAppear {
-                checkExtensionStatus()
-            }
-            .onReceive(
-                NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)
-            ) { _ in
-                checkExtensionStatus()
-            }
-        }
-    }
-
-    // MARK: - Status Banner
-
-    @ViewBuilder
-    private var statusBanner: some View {
-        HStack(spacing: 12) {
-            Circle()
-                .fill(extensionEnabled ? Color(red: 0, green: 0.831, blue: 0.667) : Color(.systemGray3))
-                .frame(width: 10, height: 10)
-
-            Text(extensionEnabled ? "확장 프로그램 활성화됨" : "확장 프로그램 비활성화됨")
-                .font(.subheadline)
-                .foregroundStyle(extensionEnabled ? Color(red: 0, green: 0.831, blue: 0.667) : .secondary)
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(.secondarySystemBackground))
-        )
-        .padding(.horizontal, 24)
-    }
-
-    // MARK: - Helpers
-
-    private func checkExtensionStatus() {
-        // Extension status detection via SFSafariExtensionManager requires
-        // a Safari-provisioned entitlement that cannot be checked at build time
-        // in an unsigned configuration. The banner defaults to "disabled" and
-        // the user follows the onboarding steps to activate manually.
-        // TODO: re-enable with signed build + provisioning profile.
-        DispatchQueue.main.async { self.extensionEnabled = false }
-    }
-
-    private func openExtensionSettings() {
-        // On iOS there is no SFSafariApplication.showPreferencesForExtension.
-        // Deep-link to the app's row in the Settings app; from there the user
-        // can navigate to Safari → Extensions → ShieldMail.
-        if let url = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(url)
         }
     }
 }
 
-// MARK: - SetupStep Component
+// MARK: - Feature Row
 
-private struct SetupStep: View {
-    let number: Int
-    let title: String
-    let description: String
+private struct FeatureRow: View {
     let icon: String
-    let done: Bool
+    let color: Color
+    let title: String
+    let detail: String
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(done
-                        ? Color(red: 0, green: 0.831, blue: 0.667)  // #00D4AA
-                        : Color(.systemGray5))
-                    .frame(width: 36, height: 36)
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .foregroundStyle(color)
+                .frame(width: 36, height: 36)
 
-                if done {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
-                } else {
-                    Text("\(number)")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color(.secondaryLabel))
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Image(systemName: icon)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color(red: 0, green: 0.478, blue: 1.0))
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                }
-                Text(description)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - Setup Step
+
+private struct SetupStep: View {
+    let number: Int
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 30, height: 30)
+                Text("\(number)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color(.secondaryLabel))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 24)
     }
 }
 
