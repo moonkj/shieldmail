@@ -77,49 +77,83 @@ button {
   letter-spacing: 0.04em;
 }
 
+/* ── Card container (single elevated surface for each section) ── */
 .sm-card {
   background: var(--sm-bg-elev);
   border-radius: var(--sm-radius-md);
   padding: var(--sm-space-3) var(--sm-space-4);
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sm-space-2);
 }
+.sm-card.expired { opacity: 0.5; }
 
+/* ── Address box (inside .sm-card — no own background) ── */
 .sm-address-box {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--sm-bg-elev);
-  border-radius: var(--sm-radius-md);
-  padding: var(--sm-space-3) var(--sm-space-4);
   font-family: var(--sm-font-mono);
   font-size: var(--sm-text-md);
   width: 100%;
   overflow-wrap: break-word;
   word-break: break-all;
-}
-
-.sm-address-box button {
-  background: none;
-  border: none;
-  color: var(--sm-primary);
-  font-size: var(--sm-text-sm);
-  flex-shrink: 0;
+  gap: var(--sm-space-2);
 }
 
 .sm-ttl-inline {
   font-size: var(--sm-text-xs);
   color: var(--sm-text-secondary);
-  margin-top: var(--sm-space-2);
+}
+.sm-ttl-inline.expired { color: var(--sm-danger); }
+
+/* ── Unified copy button (used for address + OTP) ── */
+.sm-copy-btn {
+  background: none;
+  border: none;
+  color: var(--sm-primary);
+  font-size: var(--sm-text-sm);
+  font-weight: 500;
+  padding: var(--sm-space-1) var(--sm-space-2);
+  border-radius: var(--sm-radius-sm);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background var(--sm-motion-fast);
+}
+.sm-copy-btn:active { background: rgba(0, 122, 255, 0.15); }
+
+/* ── Segmented control (iOS-style toggle for settings) ── */
+.sm-segmented {
+  display: flex;
+  background: var(--sm-bg-elev);
+  border-radius: var(--sm-radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.sm-segmented button {
+  flex: 1;
+  padding: var(--sm-space-1) var(--sm-space-2);
+  border: none;
+  border-radius: calc(var(--sm-radius-sm) - 2px);
+  background: transparent;
+  font-size: var(--sm-text-sm);
+  font-weight: 500;
+  color: var(--sm-text-secondary);
+  cursor: pointer;
+  transition: background var(--sm-motion-fast), color var(--sm-motion-fast);
+}
+.sm-segmented button.active {
+  background: var(--sm-bg);
+  color: var(--sm-text);
 }
 
+/* OTP box (inside .sm-card — no own background) */
 .sm-otp-box {
   display: flex;
   flex-direction: column;
   gap: var(--sm-space-2);
   align-items: center;
-  background: var(--sm-bg-elev);
-  border-radius: var(--sm-radius-md);
-  padding: var(--sm-space-3) var(--sm-space-4);
   width: 100%;
 }
 

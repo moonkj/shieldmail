@@ -20,6 +20,7 @@ export const en: Messages = {
       "⚠ This link came from an unknown sender. Make sure it's safe before opening.",
     waiting: "Waiting for email...",
     ttlRemaining: (mmss: string) => `Address expires in ${mmss}`,
+    expired: "Expired",
     lowConfidence: "Low confidence",
   },
   onboarding: {

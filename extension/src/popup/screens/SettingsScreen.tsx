@@ -44,17 +44,17 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
       <div class="sm-body">
         <div class="sm-settings-row">
           <label>{t.settings.userMode}</label>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div class="sm-segmented">
             <button
               type="button"
-              class={`sm-btn ${settings.userMode === "developer" ? "" : "secondary"}`}
+              class={settings.userMode === "developer" ? "active" : ""}
               onClick={() => void update({ userMode: "developer" })}
             >
               {t.settings.developer}
             </button>
             <button
               type="button"
-              class={`sm-btn ${settings.userMode === "everyday" ? "" : "secondary"}`}
+              class={settings.userMode === "everyday" ? "active" : ""}
               onClick={() => void update({ userMode: "everyday" })}
             >
               {t.settings.everyday}

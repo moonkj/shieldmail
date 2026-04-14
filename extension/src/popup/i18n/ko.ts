@@ -18,6 +18,7 @@ export const ko = {
     verifyWarning: "⚠ 이 링크는 알 수 없는 발신자에서 왔습니다. 열어도 안전한지 확인하세요.",
     waiting: "메일을 기다리는 중...",
     ttlRemaining: (mmss: string) => `이 주소 만료까지 ${mmss}`,
+    expired: "만료됨",
     lowConfidence: "낮은 신뢰도",
   },
   onboarding: {

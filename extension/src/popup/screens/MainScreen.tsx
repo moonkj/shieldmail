@@ -30,6 +30,8 @@ export function MainScreen({ navigate }: MainScreenProps) {
   const [origin, setOrigin] = useState<string | null>(null);
   const [messages, setMessages] = useState<ExtractedMessage[]>([]);
   const [error, setError] = useState<ErrorCode | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
 
   // Countdown tick for inline TTL display
@@ -173,10 +175,8 @@ export function MainScreen({ navigate }: MainScreenProps) {
   };
 
   const handleGenerate = async (): Promise<void> => {
-    // origin may be null in iOS popup contexts where chrome.tabs.query
-    // doesn't return the active web page (e.g., Settings tabs). Synthesize
-    // a placeholder so generate still works for end-to-end UI verification.
     const effectiveOrigin = origin ?? "https://demo.local";
+    setGenerating(true);
 
     try {
       const res = await sendRuntime<{ ok: boolean; error?: string; record?: AliasRecord }>({
@@ -244,6 +244,8 @@ export function MainScreen({ navigate }: MainScreenProps) {
       ]);
     } catch {
       setError("unknown");
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -254,9 +256,14 @@ export function MainScreen({ navigate }: MainScreenProps) {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
+  const isExpired = activeAlias?.expiresAt ? activeAlias.expiresAt <= now : false;
+
   const handleCopyAddress = (): void => {
     if (!activeAlias) return;
-    void navigator.clipboard?.writeText(activeAlias.address);
+    void navigator.clipboard?.writeText(activeAlias.address).then(() => {
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 1500);
+    });
   };
 
   return (
@@ -279,16 +286,14 @@ export function MainScreen({ navigate }: MainScreenProps) {
         {error ? (
           <ErrorCard
             code={error}
-            onRetry={() => {
-              setError(null);
-              void handleGenerate();
-            }}
-            onNewAlias={() => {
-              setError(null);
-              void handleGenerate();
-            }}
+            onRetry={() => { setError(null); void handleGenerate(); }}
+            onNewAlias={() => { setError(null); void handleGenerate(); }}
             onFallback={() => setError(null)}
           />
+        ) : generating ? (
+          <div class="sm-card">
+            <LoadingSkeleton />
+          </div>
         ) : !activeAlias ? (
           <Fragment>
             <p class="sm-empty">{t.main.emptyState}</p>
@@ -299,17 +304,17 @@ export function MainScreen({ navigate }: MainScreenProps) {
         ) : (
           <Fragment>
             {/* ── Address Card ── */}
-            <div class="sm-card">
+            <div class={`sm-card${isExpired ? " expired" : ""}`}>
               <div class="sm-section-label">{t.main.sectionAddress}</div>
               <div class="sm-address-box">
                 <span>{activeAlias.address}</span>
-                <button type="button" onClick={handleCopyAddress}>
-                  {t.main.copy}
+                <button type="button" class="sm-copy-btn" onClick={handleCopyAddress}>
+                  {addressCopied ? "✓" : t.main.copy}
                 </button>
               </div>
               {activeAlias.expiresAt ? (
-                <div class="sm-ttl-inline">
-                  {t.main.ttlRemaining(formatCountdown(activeAlias.expiresAt))}
+                <div class={`sm-ttl-inline${isExpired ? " expired" : ""}`}>
+                  {isExpired ? t.main.expired : t.main.ttlRemaining(formatCountdown(activeAlias.expiresAt))}
                 </div>
               ) : null}
             </div>

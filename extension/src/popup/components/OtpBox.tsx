@@ -59,8 +59,8 @@ export function OtpBox({ otp, confidence, autoCopy, messageId, onConsumed }: Otp
       <div class="sm-otp-toast">
         {copied ? t.main.copied : low ? t.main.lowConfidence : ""}
       </div>
-      <button class="sm-btn secondary" type="button" onClick={handleCopy} disabled={!otp}>
-        {t.main.copy}
+      <button class="sm-copy-btn" type="button" onClick={handleCopy} disabled={!otp}>
+        {copied ? "✓" : t.main.copy}
       </button>
     </div>
   );
