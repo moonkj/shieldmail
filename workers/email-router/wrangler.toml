@@ -39,7 +39,7 @@ new_sqlite_classes = ["AliasChannel", "TokenBucket"]
 # Vars (non-secret)
 # ─────────────────────────────────────────────
 [vars]
-DOMAIN_POOL = "d1.shldmail.work,d2.shldmail.work,d3.shldmail.work,d4.shldmail.work,d5.shldmail.work"
+DOMAIN_POOL = "shldmail.work"
 MESSAGE_TTL_MS = "600000"
 EPHEMERAL_ALIAS_TTL_SEC = "3600"
 POLL_TOKEN_TTL_SEC = "7200"
