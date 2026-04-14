@@ -69,11 +69,38 @@ export function buildRouter(): Hono<RouterCtx> {
       );
     }
 
-    let body: { mode?: unknown; ttlSec?: unknown; label?: unknown } = {};
+    let body: {
+      mode?: unknown;
+      ttlSec?: unknown;
+      label?: unknown;
+      deviceId?: unknown;
+      subscriptionJWS?: unknown;
+    } = {};
     try {
       body = (await c.req.json()) as typeof body;
     } catch {
       // empty body is fine; defaults applied below.
+    }
+
+    // ── Daily quota check ─────────────────────────────
+    const deviceId =
+      typeof body.deviceId === "string" && body.deviceId.length > 0
+        ? body.deviceId
+        : undefined;
+    const identifier = deviceId ?? clientIp;
+    const tier: "free" | "pro" = body.subscriptionJWS ? "pro" : "free";
+
+    const quotaResult = await checkDailyQuota(env, identifier, tier);
+    if (!quotaResult.allowed) {
+      return c.json(
+        {
+          error: "daily_limit_exceeded",
+          remaining: 0,
+          limit: quotaResult.limit,
+          resetAt: quotaResult.resetAt,
+        },
+        403,
+      );
     }
 
     const mode: "ephemeral" | "managed" =
@@ -154,6 +181,9 @@ export function buildRouter(): Hono<RouterCtx> {
       address,
       expiresAt: expiresAt !== null ? Math.floor(expiresAt / 1000) : null,
       pollToken,
+      remaining: quotaResult.remaining,
+      limit: quotaResult.limit,
+      tier,
     });
   });
 
@@ -284,6 +314,39 @@ export function buildRouter(): Hono<RouterCtx> {
   app.get("/health", (c) => c.json({ ok: true, service: "shieldmail-email-router" }));
 
   return app;
+}
+
+// ─────────────────────────────────────────────
+// Daily quota helper
+// ─────────────────────────────────────────────
+
+function utcDateKey(): string {
+  const d = new Date();
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+async function checkDailyQuota(
+  env: Env,
+  identifier: string,
+  tier: "free" | "pro",
+): Promise<
+  | { allowed: true; remaining: number; limit: number }
+  | { allowed: false; remaining: 0; limit: number; resetAt: string }
+> {
+  const dateKey = utcDateKey();
+  const doId = env.DAILY_QUOTA.idFromName(`quota:${identifier}:${dateKey}`);
+  const stub = env.DAILY_QUOTA.get(doId);
+  const resp = await stub.fetch("https://do.internal/check", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tier }),
+  });
+  return (await resp.json()) as
+    | { allowed: true; remaining: number; limit: number }
+    | { allowed: false; remaining: 0; limit: number; resetAt: string };
 }
 
 // ─────────────────────────────────────────────

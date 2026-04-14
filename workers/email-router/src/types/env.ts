@@ -10,6 +10,7 @@ export interface Env {
   // Durable Objects
   MSG_DO: DurableObjectNamespace;
   RATE_LIMIT: DurableObjectNamespace;
+  DAILY_QUOTA: DurableObjectNamespace;
 
   // Vars
   DOMAIN_POOL: string;          // comma-separated, e.g. "d1.shld.me,d2.shld.me"

@@ -485,3 +485,114 @@ button {
   color: var(--sm-text-muted);
   font-size: var(--sm-text-sm);
 }
+
+/* ── UsageBadge ── */
+.sm-usage-badge {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sm-space-1);
+}
+
+.sm-usage-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sm-usage-text {
+  font-size: var(--sm-text-xs);
+  color: var(--sm-text-secondary);
+}
+
+.sm-usage-tier {
+  font-size: var(--sm-text-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--sm-radius-sm);
+}
+
+.sm-usage-tier--pro {
+  background: var(--sm-success);
+  color: #fff;
+}
+
+.sm-usage-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--sm-bg-elev);
+  border-radius: var(--sm-radius-pill);
+  overflow: hidden;
+}
+
+.sm-usage-bar-fill {
+  height: 100%;
+  border-radius: var(--sm-radius-pill);
+  transition: width var(--sm-motion-normal) var(--sm-ease);
+}
+
+/* ── LimitSheet (bottom-sheet overlay) ── */
+.sm-limit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sm-limit-sheet {
+  background: var(--sm-bg);
+  border-radius: var(--sm-radius-lg) var(--sm-radius-lg) 0 0;
+  padding: var(--sm-space-5) var(--sm-space-4);
+  padding-bottom: calc(var(--sm-space-5) + env(safe-area-inset-bottom, 0px));
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sm-space-3);
+  box-shadow: var(--sm-shadow-lg);
+  animation: sm-slide-up var(--sm-motion-normal) var(--sm-ease);
+}
+
+@keyframes sm-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sm-limit-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+
+.sm-limit-title {
+  margin: 0;
+  font-size: var(--sm-text-lg);
+  font-weight: 600;
+  text-align: center;
+}
+
+.sm-limit-body {
+  margin: 0;
+  font-size: var(--sm-text-sm);
+  color: var(--sm-text-secondary);
+  text-align: center;
+}
+
+/* ── SubscriptionScreen ── */
+.sm-subscription-plan {
+  font-size: var(--sm-text-lg);
+  font-weight: 600;
+  color: var(--sm-text);
+}
+
+.sm-benefits-list {
+  margin: 0;
+  padding-left: var(--sm-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sm-space-2);
+  font-size: var(--sm-text-sm);
+  color: var(--sm-text-secondary);
+  line-height: 1.5;
+}

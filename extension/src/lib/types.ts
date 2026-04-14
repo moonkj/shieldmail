@@ -67,3 +67,14 @@ export const DEFAULT_SETTINGS: UserSettings = {
   apiBaseUrl: "https://api.shldmail.work",
   detectionThreshold: 0.7,
 };
+
+/* ---------- Subscription / Usage ---------- */
+
+export type SubscriptionTier = "free" | "pro";
+
+export interface DailyUsage {
+  date: string;      // YYYY-MM-DD (UTC)
+  count: number;
+  limit: number;
+  tier: SubscriptionTier;
+}

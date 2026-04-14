@@ -61,6 +61,7 @@ function makeMockEnv(overrides: Partial<Record<string, string>> = {}): Env {
     ALIAS_KV: {} as KVNamespace,
     MSG_DO: {} as DurableObjectNamespace,
     RATE_LIMIT: {} as DurableObjectNamespace,
+    DAILY_QUOTA: {} as DurableObjectNamespace,
     DOMAIN_POOL: "d1.test.shld.me",
     MESSAGE_TTL_MS: overrides.MESSAGE_TTL_MS ?? "600000",
     EPHEMERAL_ALIAS_TTL_SEC: "3600",

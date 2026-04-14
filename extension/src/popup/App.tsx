@@ -4,8 +4,9 @@ import { OnboardingScreen } from "./screens/OnboardingScreen.js";
 import { MainScreen } from "./screens/MainScreen.js";
 import { ManagedScreen } from "./screens/ManagedScreen.js";
 import { SettingsScreen } from "./screens/SettingsScreen.js";
+import { SubscriptionScreen } from "./screens/SubscriptionScreen.js";
 
-export type Screen = "onboarding" | "main" | "managed" | "settings";
+export type Screen = "onboarding" | "main" | "managed" | "settings" | "subscription";
 
 export function App() {
   // Default to "main" so the popup is never blank while storage resolves.
@@ -47,5 +48,7 @@ export function App() {
       return <ManagedScreen navigate={setScreen} />;
     case "settings":
       return <SettingsScreen navigate={setScreen} />;
+    case "subscription":
+      return <SubscriptionScreen navigate={setScreen} />;
   }
 }

@@ -180,6 +180,39 @@ export function fillOtpField(input: HTMLInputElement, otp: string): void {
   }
 }
 
+// ── Limit toast ──────────────────────────────────────────────────
+
+/** Show a toast when the daily free limit is exceeded (content script context). */
+export function showLimitToast(): void {
+  document.querySelectorAll("[data-shieldmail-toast],[data-shieldmail-limit-toast]").forEach((e) => e.remove());
+
+  const toast = document.createElement("div");
+  toast.setAttribute("data-shieldmail-limit-toast", "");
+  toast.style.cssText = [
+    "position:fixed", "top:60px", "right:12px",
+    "z-index:2147483647",
+    "background:#000", "color:#ff9500",
+    "border-radius:10px", "padding:10px 16px",
+    "text-align:center", "font-family:-apple-system,sans-serif",
+    "box-shadow:0 4px 16px rgba(0,0,0,0.4)",
+    "max-width:280px",
+  ].join(";");
+
+  const label = document.createElement("div");
+  label.style.cssText = "font-size:13px;font-weight:600;margin-bottom:4px;color:#ff9500";
+  label.textContent = "\u26A0 \uC624\uB298\uC758 \uBB34\uB8CC \uD55C\uB3C4 \uCD08\uACFC";
+
+  const body = document.createElement("div");
+  body.style.cssText = "font-size:11px;color:#ccc";
+  body.textContent = "\uD31D\uC5C5\uC5D0\uC11C Pro \uC5C5\uADF8\uB808\uC774\uB4DC";
+
+  toast.appendChild(label);
+  toast.appendChild(body);
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 8000);
+}
+
 // ── OTP toast ──────────────────────────────────────────────────
 
 /** Copy text to clipboard (requires user gesture on iOS Safari). */

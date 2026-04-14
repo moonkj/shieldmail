@@ -6,6 +6,8 @@ import { VerifyLinkButton } from "../components/VerifyLinkButton.js";
 import { PrivacyFooter } from "../components/PrivacyFooter.js";
 import { LoadingSkeleton } from "../components/LoadingSkeleton.js";
 import { ErrorCard } from "../components/ErrorCard.js";
+import { UsageBadge } from "../components/UsageBadge.js";
+import { LimitSheet } from "../components/LimitSheet.js";
 import { getMessages } from "../i18n/index.js";
 import {
   getActiveTabId,
@@ -16,7 +18,7 @@ import {
 } from "../state/store.js";
 import { sendRuntime } from "../../lib/messaging.js";
 import type { ErrorCode, SseActiveMessage, SseInactiveMessage } from "../../lib/messaging.js";
-import type { AliasRecord, ExtractedMessage, RuntimeMessage } from "../../lib/types.js";
+import type { AliasRecord, ExtractedMessage, RuntimeMessage, SubscriptionTier } from "../../lib/types.js";
 import type { Screen } from "../App.js";
 
 export interface MainScreenProps {
@@ -36,6 +38,12 @@ export function MainScreen({ navigate }: MainScreenProps) {
   const [now, setNow] = useState(Date.now());
   // Alias fetched directly from content script (bypasses storage + background).
   const [contentAlias, setContentAlias] = useState<AliasRecord | null>(null);
+
+  // ── Usage / Subscription state ──
+  const [usageUsed, setUsageUsed] = useState(0);
+  const [usageLimit, setUsageLimit] = useState(20);
+  const [usageTier, setUsageTier] = useState<SubscriptionTier>("free");
+  const [showLimitSheet, setShowLimitSheet] = useState(false);
 
   // Countdown tick for inline TTL display
   useEffect(() => {
@@ -157,6 +165,12 @@ export function MainScreen({ navigate }: MainScreenProps) {
   };
 
   const handleGenerate = async (): Promise<void> => {
+    // Block generation if limit already exceeded (local check).
+    if (usageTier === "free" && usageUsed >= usageLimit) {
+      setShowLimitSheet(true);
+      return;
+    }
+
     const effectiveOrigin = origin ?? "https://demo.local";
     setGenerating(true);
 
@@ -173,6 +187,22 @@ export function MainScreen({ navigate }: MainScreenProps) {
         body: JSON.stringify({ mode, label: document.title.slice(0, 64) }),
       });
 
+      // Handle 403 daily_limit_exceeded
+      if (resp.status === 403) {
+        try {
+          const errData = (await resp.json()) as { code?: string; remaining?: number; limit?: number; tier?: string };
+          if (errData.code === "daily_limit_exceeded") {
+            if (typeof errData.remaining === "number") setUsageUsed(errData.limit ?? usageLimit);
+            if (typeof errData.limit === "number") setUsageLimit(errData.limit);
+            if (errData.tier === "free" || errData.tier === "pro") setUsageTier(errData.tier);
+            setShowLimitSheet(true);
+            return;
+          }
+        } catch { /* fallthrough to generic error */ }
+        setError("unknown");
+        return;
+      }
+
       if (!resp.ok) {
         setError("unknown");
         return;
@@ -183,7 +213,19 @@ export function MainScreen({ navigate }: MainScreenProps) {
         address: string;
         expiresAt: number | null;
         pollToken: string;
+        remaining?: number;
+        limit?: number;
+        tier?: string;
       };
+
+      // Update usage state from API response.
+      if (typeof data.remaining === "number" && typeof data.limit === "number") {
+        setUsageUsed(data.limit - data.remaining);
+        setUsageLimit(data.limit);
+      }
+      if (data.tier === "free" || data.tier === "pro") {
+        setUsageTier(data.tier);
+      }
 
       const record: AliasRecord = {
         aliasId: data.aliasId,
@@ -244,6 +286,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
         </button>
       </header>
       <div class="sm-body">
+        <UsageBadge used={usageUsed} limit={usageLimit} tier={usageTier} />
         {error ? (
           <ErrorCard
             code={error}
@@ -315,6 +358,12 @@ export function MainScreen({ navigate }: MainScreenProps) {
           </Fragment>
         )}
       </div>
+      {showLimitSheet && (
+        <LimitSheet
+          navigate={navigate}
+          onDismiss={() => setShowLimitSheet(false)}
+        />
+      )}
       <PrivacyFooter />
     </div>
   );

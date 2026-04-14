@@ -25,7 +25,7 @@ interface MockDOStub {
 function makeMockEnv(
   kvStore: Record<string, string> = {},
   overrides: Partial<Record<string, unknown>> = {},
-): { env: Env; doStub: MockDOStub; rlStub: MockDOStub } {
+): { env: Env; doStub: MockDOStub; rlStub: MockDOStub; quotaStub: MockDOStub } {
   const doStub: MockDOStub = {
     fetch: vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ messages: [], expired: false }), {
@@ -38,6 +38,15 @@ function makeMockEnv(
   const rlStub: MockDOStub = {
     fetch: vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ allowed: true, remaining: 29 }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    ),
+  };
+
+  const quotaStub: MockDOStub = {
+    fetch: vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ allowed: true, remaining: 0, limit: 1 }), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),
@@ -63,6 +72,10 @@ function makeMockEnv(
       idFromName: vi.fn().mockReturnValue("mock-rl-id"),
       get: vi.fn().mockReturnValue(rlStub),
     },
+    DAILY_QUOTA: {
+      idFromName: vi.fn().mockReturnValue("mock-quota-id"),
+      get: vi.fn().mockReturnValue(quotaStub),
+    },
     DOMAIN_POOL: "d1.test.shld.me",
     MESSAGE_TTL_MS: "600000",
     EPHEMERAL_ALIAS_TTL_SEC: "3600",
@@ -71,7 +84,7 @@ function makeMockEnv(
     ...overrides,
   } as unknown as Env;
 
-  return { env, doStub, rlStub };
+  return { env, doStub, rlStub, quotaStub };
 }
 
 async function seedAlias(

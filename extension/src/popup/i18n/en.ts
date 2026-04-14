@@ -69,6 +69,7 @@ export const en: Messages = {
     openSource: "Open-source repository (GitHub)",
     version: "Version",
     resetOnboarding: "Replay onboarding",
+    subscription: "Subscription",
   },
   errors: {
     rate_limited: "Too many requests. Please try again shortly.",
@@ -81,6 +82,28 @@ export const en: Messages = {
     retry: "Retry",
     newAlias: "Generate new address",
     fallback: "See guide",
+  },
+  usage: {
+    used: (used: number, limit: number) => `${used}/${limit} used`,
+  },
+  limit: {
+    title: "You've used all free credits for today",
+    body: "Get 20 aliases/day for just $0.99/month.",
+    upgrade: "Upgrade to Pro · $0.99/mo",
+    dismiss: "Try again tomorrow",
+  },
+  subscription: {
+    title: "Subscription",
+    currentPlan: "Current plan",
+    freePlan: "Free",
+    benefitsTitle: "ShieldMail Pro",
+    benefit1: "20 aliases per day (free: 1)",
+    benefit2: "Priority email processing",
+    benefit3: "Early access to premium features",
+    subscribe: "Subscribe to Pro · $0.99/mo",
+    restore: "Restore purchase",
+    manage: "Manage Apple subscription",
+    disclaimer: "Subscription is billed to your iTunes account and auto-renews 24 hours before expiration.",
   },
   privacy: {
     footer:

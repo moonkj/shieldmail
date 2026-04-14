@@ -16,6 +16,7 @@ import type { Env } from "./types/env.js";
 
 export { AliasChannel } from "./do/AliasChannel.js";
 export { TokenBucket } from "./do/TokenBucket.js";
+export { DailyQuota } from "./do/DailyQuota.js";
 
 const app = buildRouter();
 

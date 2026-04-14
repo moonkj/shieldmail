@@ -24,6 +24,12 @@ describe("Worker entry point exports", () => {
     expect(typeof mod.TokenBucket).toBe("function");
   });
 
+  it("re-exports DailyQuota class", async () => {
+    const mod = await import("../../src/index.js");
+    expect(mod.DailyQuota).toBeDefined();
+    expect(typeof mod.DailyQuota).toBe("function");
+  });
+
   it("has default export with fetch and email handlers", async () => {
     const mod = await import("../../src/index.js");
     expect(mod.default).toBeDefined();

@@ -31,9 +31,17 @@ class_name = "AliasChannel"
 name = "RATE_LIMIT"
 class_name = "TokenBucket"
 
+[[durable_objects.bindings]]
+name = "DAILY_QUOTA"
+class_name = "DailyQuota"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["AliasChannel", "TokenBucket"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["DailyQuota"]
 
 # ─────────────────────────────────────────────
 # Vars (non-secret)

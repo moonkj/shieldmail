@@ -92,6 +92,10 @@ function makeMockEnv(kvStore: Record<string, string> = {}): {
       idFromName: vi.fn().mockReturnValue("mock-rl-id"),
       get: vi.fn().mockReturnValue({ fetch: vi.fn() }),
     },
+    DAILY_QUOTA: {
+      idFromName: vi.fn().mockReturnValue("mock-quota-id"),
+      get: vi.fn().mockReturnValue({ fetch: vi.fn() }),
+    },
     DOMAIN_POOL: "d1.test.shld.me",
     MESSAGE_TTL_MS: "600000",
     EPHEMERAL_ALIAS_TTL_SEC: "3600",

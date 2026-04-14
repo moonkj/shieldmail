@@ -66,6 +66,7 @@ export const ko = {
     openSource: "오픈소스 저장소 (GitHub)",
     version: "버전",
     resetOnboarding: "온보딩 다시 보기",
+    subscription: "구독 상태",
   },
   errors: {
     rate_limited: "너무 많은 요청이에요. 잠시 후 다시 시도해주세요.",
@@ -78,6 +79,28 @@ export const ko = {
     retry: "다시 시도",
     newAlias: "새 주소 생성",
     fallback: "가이드 보기",
+  },
+  usage: {
+    used: (used: number, limit: number) => `${used}/${limit} 사용`,
+  },
+  limit: {
+    title: "오늘의 무료 한도를 모두 사용했어요",
+    body: "월 $0.99로 하루 20회까지 생성할 수 있어요.",
+    upgrade: "Pro 업그레이드 · 월 $0.99",
+    dismiss: "내일 다시 사용",
+  },
+  subscription: {
+    title: "구독",
+    currentPlan: "현재 플랜",
+    freePlan: "무료",
+    benefitsTitle: "ShieldMail Pro",
+    benefit1: "하루 20회 이메일 생성 (무료: 1회)",
+    benefit2: "우선 이메일 수신 처리",
+    benefit3: "향후 프리미엄 기능 우선 제공",
+    subscribe: "Pro 구독하기 · 월 $0.99",
+    restore: "구독 복원",
+    manage: "Apple 구독 관리",
+    disclaimer: "구독은 iTunes 계정으로 청구되며 만료 24시간 전 자동 갱신됩니다.",
   },
   privacy: {
     footer:

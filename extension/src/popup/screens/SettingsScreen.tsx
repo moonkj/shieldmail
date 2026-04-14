@@ -52,6 +52,16 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
             onClick={() => void update({ autoCopyOtp: !settings.autoCopyOtp })}
           />
         </div>
+        <div
+          class="sm-settings-row"
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate("subscription")}
+          role="button"
+          tabIndex={0}
+        >
+          <label>{t.settings.subscription}</label>
+          <small style={{ color: "var(--sm-text-secondary)" }}>→</small>
+        </div>
         {/* MVP: Managed Mode, API Base URL, GitHub link hidden — deferred to post-launch */}
         <div class="sm-settings-row">
           <label>{t.settings.version}</label>
