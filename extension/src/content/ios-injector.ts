@@ -292,21 +292,44 @@ export class IOSFloatingButtonInjector {
     this.setState("generating");
 
     const input = this.deps.getCurrentInput();
-    const msg: RuntimeMessage = {
-      type: "GENERATE_ALIAS",
-      mode: this.deps.getMode(),
-      origin: location.origin,
-      label: document.title.slice(0, 64),
-    };
 
-    const res = await sendMessage<
-      | { type: "GENERATE_ALIAS_RESULT"; ok: true;  record: { aliasId: string; address: string; pollToken?: string } }
-      | { type: "GENERATE_ALIAS_RESULT"; ok: false; error: string }
-      | { ok: false; error: string }
-    >(msg, 8000);
+    // Direct API call — bypasses background SW (unreliable on iOS Safari).
+    // Content scripts have fetch() access via host_permissions.
+    let address = "";
+    try {
+      const apiBase = "https://api.shldmail.work";
+      const mode = this.deps.getMode();
+      const resp = await fetch(`${apiBase}/alias/generate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode, label: document.title.slice(0, 64) }),
+      });
+      if (!resp.ok) throw new Error(`http_${resp.status}`);
+      const data = (await resp.json()) as { aliasId: string; address: string };
+      address = data.address;
+      if (!address) throw new Error("no address");
 
-    if (!res || (res as { ok?: boolean }).ok === false) {
-      const errMsg = (res as { error?: string })?.error ?? "unknown";
+      // Save to extension storage so popup can see it.
+      try {
+        const cur = await chrome.storage.local.get("activeAliases") as {
+          activeAliases?: Record<string, unknown>;
+        };
+        const next = {
+          ...(cur.activeAliases ?? {}),
+          [data.aliasId]: {
+            aliasId: data.aliasId,
+            address: data.address,
+            expiresAt: Date.now() + 3600000,
+            pollToken: "",
+            mode,
+            createdAt: Date.now(),
+            origin: location.origin,
+          },
+        };
+        await chrome.storage.local.set({ activeAliases: next });
+      } catch { /* storage save optional */ }
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : "unknown";
       this.showErrorDetail(`generate failed: ${errMsg}`);
       this.setState("error");
       haptic("error");
@@ -314,14 +337,15 @@ export class IOSFloatingButtonInjector {
       return;
     }
 
-    const record = (res as { record: { aliasId: string; address: string; pollToken?: string } }).record;
-    if (!record?.address) {
-      this.showErrorDetail("no record.address in response");
+    if (!address) {
+      this.showErrorDetail("no address");
       this.setState("error");
       haptic("error");
       setTimeout(() => this.setState("default"), 4000);
       return;
     }
+
+    const record = { aliasId: "", address };
 
     if (input) {
       this.fillField(input, record.address);
