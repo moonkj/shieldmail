@@ -64,11 +64,13 @@ export default defineConfig({
     sourcemap: process.env["NODE_ENV"] !== "production",
     rollupOptions: {
       input: {
-        content: resolve(__dirname, "src/content/index.ts"),
+        // background service worker: manifest declares "type": "module",
+        // so ES module format is correct here.
         background: resolve(__dirname, "src/background/index.ts"),
-        // popup is built separately by vite.popup.config.ts as IIFE format.
-        // iOS Safari Web Extension popups break on <script type="module">
-        // with sibling chunks — see ARCHITECTURE.md and vite.popup.config.ts.
+        // popup: built separately by vite.popup.config.ts (IIFE).
+        // content: built separately by vite.content.config.ts (IIFE).
+        // Content scripts are injected as classic scripts — ES module
+        // import statements cause SyntaxError. See vite.content.config.ts.
       },
       output: {
         entryFileNames: "[name].js",

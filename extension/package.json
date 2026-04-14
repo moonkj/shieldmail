@@ -6,8 +6,8 @@
   "description": "ShieldMail Safari Web Extension — Shield Mode signup automation",
   "scripts": {
     "dev": "NODE_ENV=development vite build --watch --mode development",
-    "build": "NODE_ENV=production vite build && NODE_ENV=production vite build -c vite.popup.config.ts",
-    "build:dev": "NODE_ENV=development vite build && NODE_ENV=development vite build -c vite.popup.config.ts",
+    "build": "NODE_ENV=production vite build && NODE_ENV=production vite build -c vite.content.config.ts && NODE_ENV=production vite build -c vite.popup.config.ts",
+    "build:dev": "NODE_ENV=development vite build && NODE_ENV=development vite build -c vite.content.config.ts && NODE_ENV=development vite build -c vite.popup.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
