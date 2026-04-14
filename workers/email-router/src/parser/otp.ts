@@ -154,9 +154,73 @@ export function extractOtp(text: string | null | undefined): OtpResult | null {
     }
   }
 
-  if (best === null) return null;
+  if (best === null) {
+    // Fallback: keyword-anchor extraction. Find verification keywords first,
+    // then grab the nearest code-like token. Handles any format (XFL-W3D,
+    // ab12-cd34, ABCDEF, etc.) without specific pattern rules.
+    const fallback = keywordAnchorExtract(normalised);
+    if (fallback) return fallback;
+    return null;
+  }
   const confidence = Math.max(0, Math.min(1, best.score / 20));
   return { code: best.code, confidence };
+}
+
+/**
+ * Keyword-anchor fallback: scan for verification keywords, then extract
+ * the nearest standalone code-like token (3-10 chars, has a digit or is
+ * all-uppercase, not a URL/email/common word).
+ */
+const ANCHOR_KEYWORDS = [
+  /verification\s*code/i, /code\s*is/i, /your\s*code/i,
+  /one[\s-]?time/i, /\botp\b/i, /security\s*code/i,
+  /인증\s*코드/, /확인\s*코드/, /인증\s*번호/, /코드는/,
+  /코드가/, /코드를/, /\bcode[:\s]/i, /验证码/, /驗證碼/,
+  /確認\s*コード/, /認証\s*(?:番号|コード)/,
+];
+
+// Matches standalone tokens that look like verification codes.
+// Must contain at least one digit, or be all uppercase letters.
+const CODE_TOKEN_RE = /\b[A-Z0-9][A-Z0-9\-]{1,8}[A-Z0-9]\b/gi;
+
+const REJECT_TOKEN_RE =
+  /^(?:https?|www\.|[a-z]+\.[a-z]{2,}|the|and|for|not|you|this|that|with|from|have|are|was|been|will|your|has|com|org|net|edu|http)$/i;
+
+function keywordAnchorExtract(text: string): OtpResult | null {
+  for (const kw of ANCHOR_KEYWORDS) {
+    const kwMatch = kw.exec(text);
+    if (!kwMatch) continue;
+    const kwIndex = kwMatch.index;
+    // Scan ±120 chars around the keyword.
+    const start = Math.max(0, kwIndex - 120);
+    const end = Math.min(text.length, kwIndex + kwMatch[0].length + 120);
+    const window = text.slice(start, end);
+
+    CODE_TOKEN_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    let bestToken: { code: string; distance: number } | null = null;
+    while ((m = CODE_TOKEN_RE.exec(window)) !== null) {
+      const token = m[0]!;
+      const normalised = token.replace(/[\s-]/g, "");
+      // Must have at least one digit, OR be all uppercase 3+ chars.
+      const hasDigit = /\d/.test(normalised);
+      const allUpper = /^[A-Z]{3,}$/.test(normalised);
+      if (!hasDigit && !allUpper) continue;
+      // Reject common words, URLs.
+      if (REJECT_TOKEN_RE.test(normalised)) continue;
+      // Reject date-like numbers.
+      if (YEAR_RE.test(normalised) || DATE8_RE.test(normalised)) continue;
+      // Prefer the token closest to the keyword.
+      const dist = Math.abs(m.index - (kwIndex - start));
+      if (!bestToken || dist < bestToken.distance) {
+        bestToken = { code: token, distance: dist };
+      }
+    }
+    if (bestToken) {
+      return { code: bestToken.code, confidence: 0.7 };
+    }
+  }
+  return null;
 }
 
 function normaliseForScan(text: string): string {

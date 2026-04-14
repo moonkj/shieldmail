@@ -167,25 +167,6 @@ function fillOtpField(input: HTMLInputElement, otp: string): void {
 
 // ── OTP toast ──────────────────────────────────────────────────
 
-/** Small status toast at bottom of screen. */
-function showDebugToast(text: string): void {
-  document.querySelector("[data-shieldmail-status]")?.remove();
-  const el = document.createElement("div");
-  el.setAttribute("data-shieldmail-status", "");
-  Object.assign(el.style, {
-    position: "fixed", bottom: "50px", left: "50%",
-    transform: "translateX(-50%)", zIndex: "2147483647",
-    background: "#007AFF", color: "#fff", borderRadius: "20px",
-    padding: "8px 18px", fontSize: "13px",
-    fontFamily: "-apple-system, sans-serif",
-    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-    pointerEvents: "none",
-  });
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity 300ms"; setTimeout(() => el.remove(), 300); }, 5000);
-}
-
 /** Copy text to clipboard (requires user gesture on iOS Safari). */
 function copyText(text: string): void {
   navigator.clipboard?.writeText(text).catch(() => {});
@@ -205,17 +186,17 @@ function showOtpToast(otp: string): void {
   const toast = document.createElement("div");
   toast.setAttribute("data-shieldmail-toast", "");
   toast.style.cssText = [
-    "position:fixed", "top:40%", "left:50%",
-    "transform:translate(-50%,-50%)", "z-index:2147483647",
+    "position:fixed", "top:60px", "right:12px",
+    "z-index:2147483647",
     "background:#000", "color:#0f0",
-    "border-radius:14px", "padding:16px 28px",
+    "border-radius:10px", "padding:8px 14px",
     "text-align:center", "font-family:-apple-system,sans-serif",
-    "box-shadow:0 8px 24px rgba(0,0,0,0.5)",
+    "box-shadow:0 4px 16px rgba(0,0,0,0.4)",
   ].join(";");
 
   toast.innerHTML =
-    '<div style="font-size:12px;color:#aaa;margin-bottom:8px">인증 코드</div>' +
-    '<div style="font-size:36px;font-weight:800;letter-spacing:8px;color:#0f0">' + otp + '</div>';
+    '<div style="font-size:10px;color:#888;margin-bottom:2px">인증 코드</div>' +
+    '<div style="font-size:20px;font-weight:800;letter-spacing:3px;color:#0f0">' + otp + '</div>';
 
   document.body.appendChild(toast);
 
@@ -285,29 +266,24 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
 
   // Resume OTP polling if alias was persisted from a previous page.
   const persisted = restorePersistedAlias();
-  showDebugToast(persisted ? `폴링 시작: ${persisted.aliasId.slice(0,6)}...` : "저장된 alias 없음");
   if (persisted?.pollToken && persisted?.aliasId) {
     const apiBase = "https://api.shldmail.work";
     const maxMs = 5 * 60 * 1000;
     const start = Date.now();
-    let pollCount = 0;
     const resumePoll = async (): Promise<void> => {
-      if (Date.now() - start > maxMs) { showDebugToast("폴링 타임아웃(5분)"); return; }
-      pollCount++;
+      if (Date.now() - start > maxMs) return;
       try {
         const resp = await fetch(
           `${apiBase}/alias/${encodeURIComponent(persisted.aliasId)}/messages`,
           { headers: { authorization: `Bearer ${persisted.pollToken}` } },
         );
-        if (!resp.ok) { showDebugToast(`폴링#${pollCount} HTTP ${resp.status}`); }
+        if (!resp.ok) { /* retry */ }
         if (resp.ok) {
           const data = (await resp.json()) as {
             messages: Array<{ otp?: string; verifyLinks?: string[]; id: string }>;
             expired: boolean;
           };
-          if (data.expired) { showDebugToast("alias 만료됨"); return; }
-          const msgCount = data.messages?.length ?? 0;
-          if (msgCount > 0) showDebugToast(`메시지 ${msgCount}개 수신!`);
+          if (data.expired) return;
           const msg = data.messages?.[0];
           if (msg?.otp) {
             showOtpToast(msg.otp);
@@ -321,7 +297,7 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
           }
         }
       } catch (e) {
-        showDebugToast(`폴링 오류: ${e instanceof Error ? e.message : "?"}`);
+        /* retry */
       }
       setTimeout(resumePoll, 3000);
     };

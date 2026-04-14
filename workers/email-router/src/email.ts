@@ -106,7 +106,6 @@ export async function handleEmail(
     const otpFromText = rawText ? extractOtp(rawText) : null;
     const otpFromHtml = htmlText ? extractOtp(htmlText) : null;
     const otp = pickBestOtp(otpFromText, otpFromHtml);
-    const textView = rawText ?? htmlText;
 
     // 5. Extract links from both views.
     const verifyLinks = extractLinks(rawHtml ?? "", rawText ?? "");
