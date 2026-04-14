@@ -3,6 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
+routes = [
+  { pattern = "api.shldmail.work/*", zone_name = "shldmail.work" }
+]
+
 # Email Routing: bind incoming MX to this worker.
 # Catch-all on d1-d5.shldmail.work routes all inbound mail here.
 # Email handler is `export default { email(...) }` in src/index.ts.
@@ -47,13 +51,7 @@ POLL_TOKEN_TTL_SEC = "7200"
 # ─────────────────────────────────────────────
 # (declared in code via Env type; do not put values here)
 
-# ─────────────────────────────────────────────
-# Routes
-# ─────────────────────────────────────────────
-# HTTP API route
-routes = [
-  { pattern = "api.shldmail.work/*", zone_name = "shldmail.work" }
-]
+# Routes are declared at top level (above [vars]).
 
 [observability]
 enabled = true
