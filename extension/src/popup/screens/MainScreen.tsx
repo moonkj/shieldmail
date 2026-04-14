@@ -49,112 +49,54 @@ export function MainScreen({ navigate }: MainScreenProps) {
     [aliases, origin],
   );
 
-  // Fetch messages for the active alias whenever it changes.
+  // Poll messages directly from the Worker API (bypasses background SW).
+  // Polls every 3s while popup is open, stops when OTP arrives or alias expires.
   useEffect(() => {
-    if (!activeAlias) return;
+    if (!activeAlias?.pollToken) return;
     let mounted = true;
-    void sendRuntime<{ ok: boolean; messages?: ExtractedMessage[]; error?: string }>({
-      type: "FETCH_MESSAGES",
-      aliasId: activeAlias.aliasId,
-    }).then((res) => {
-      if (!mounted || !res) return;
-      if (res.ok && res.messages) {
-        const incoming = res.messages;
-        setMessages((prev) => {
-          const byId = new Map(prev.map((m) => [m.id, m]));
-          for (const m of incoming) byId.set(m.id, m);
-          return [...byId.values()].sort((a, b) => b.receivedAt - a.receivedAt);
-        });
-      } else if (!res.ok && res.error) setError((res.error as ErrorCode) ?? "unknown");
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [activeAlias?.aliasId]);
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-  // Live subscribe to FETCH_MESSAGES_RESULT broadcast pushes.
-  useEffect(() => {
-    return onRuntimeMessage((raw) => {
-      const msg = raw as RuntimeMessage;
-      if (msg.type === "FETCH_MESSAGES_RESULT" && msg.ok) {
-        const incoming = msg.messages;
-        setMessages((prev) => {
-          const byId = new Map(prev.map((m) => [m.id, m]));
-          for (const m of incoming) byId.set(m.id, m);
-          return [...byId.values()].sort((a, b) => b.receivedAt - a.receivedAt);
-        });
-        setError(null);
-      } else if (msg.type === "FETCH_MESSAGES_RESULT" && !msg.ok) {
-        setError((msg.error as ErrorCode) ?? "unknown");
-      }
-    });
-  }, []);
-
-  // SSE direct connection to DO /stream endpoint.
-  // While connected: background alarm poller is paused (SSE_ACTIVE).
-  // On close/error: background polling resumes (SSE_INACTIVE).
-  useEffect(() => {
-    if (!activeAlias) return;
-    const aliasId = activeAlias.aliasId;
-    const pollToken = activeAlias.pollToken;
-    // pollToken may be absent on legacy records — fall back to background polling.
-    if (!pollToken) return;
-
-    let es: EventSource | null = null;
-    let retryCount = 0;
-    const MAX_RETRIES = 5;
-    let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const connect = (): void => {
-      if (cancelled) return;
-      // Last-Event-ID is set automatically by EventSource on reconnect.
-      const base = settings.apiBaseUrl.replace(/\/$/, "");
-      const url = new URL(`${base}/alias/${aliasId}/stream`);
-      url.searchParams.set("token", pollToken);
-      es = new EventSource(url.toString());
-
-      es.addEventListener("open", () => {
-        retryCount = 0;
-        void sendRuntime<void>({ type: "SSE_ACTIVE", aliasId } as SseActiveMessage);
-      });
-
-      es.addEventListener("message", (e: MessageEvent<string>) => {
-        try {
-          const msg = JSON.parse(e.data) as ExtractedMessage;
-          if (!msg.id || !msg.receivedAt) return;
+    const poll = async (): Promise<void> => {
+      if (!mounted) return;
+      try {
+        const apiBase = settings.apiBaseUrl.replace(/\/$/, "");
+        const resp = await fetch(
+          `${apiBase}/alias/${encodeURIComponent(activeAlias.aliasId)}/messages`,
+          { headers: { authorization: `Bearer ${activeAlias.pollToken}` } },
+        );
+        if (!resp.ok || !mounted) return;
+        const data = (await resp.json()) as { messages: ExtractedMessage[]; expired: boolean };
+        if (!mounted) return;
+        if (data.messages.length > 0) {
           setMessages((prev) => {
             const byId = new Map(prev.map((m) => [m.id, m]));
-            byId.set(msg.id, msg);
+            for (const m of data.messages) byId.set(m.id, m);
             return [...byId.values()].sort((a, b) => b.receivedAt - a.receivedAt);
           });
           setError(null);
-        } catch { /* malformed frame — ignore */ }
-      });
-
-      es.addEventListener("error", () => {
-        es?.close();
-        es = null;
-        if (cancelled) return;
-        retryCount += 1;
-        if (retryCount > MAX_RETRIES) {
-          void sendRuntime<void>({ type: "SSE_INACTIVE", aliasId } as SseInactiveMessage);
-          return;
+          return; // Stop polling — OTP arrived.
         }
-        const delay = Math.min(30_000, 1_000 * Math.pow(2, retryCount - 1));
-        retryTimer = setTimeout(connect, delay);
-      });
+        if (data.expired) return; // Stop polling.
+      } catch {
+        // Network error — retry on next tick.
+      }
+      if (mounted) timer = setTimeout(poll, 3000);
     };
 
-    connect();
-
+    void poll();
     return () => {
-      cancelled = true;
-      if (retryTimer !== null) clearTimeout(retryTimer);
-      es?.close();
-      void sendRuntime<void>({ type: "SSE_INACTIVE", aliasId } as SseInactiveMessage);
+      mounted = false;
+      if (timer) clearTimeout(timer);
     };
-  }, [activeAlias?.aliasId]);
+  }, [activeAlias?.aliasId, activeAlias?.pollToken]);
+
+  // Background broadcast listener removed — popup polls the Worker API
+  // directly via the useEffect above (3s interval). This bypasses the
+  // background SW which is unreliable on iOS Safari.
+
+  // SSE removed — direct polling above handles message fetching.
+  // SSE requires background SW for SSE_ACTIVE/INACTIVE coordination,
+  // which is unreliable on iOS Safari.
 
   // CRITICAL: scrub in-memory OTP state on unmount.
   useEffect(() => {
@@ -179,70 +121,50 @@ export function MainScreen({ navigate }: MainScreenProps) {
     setGenerating(true);
 
     try {
-      const res = await sendRuntime<{ ok: boolean; error?: string; record?: AliasRecord }>({
-        type: "GENERATE_ALIAS",
-        mode: settings.managedModeEnabled ? "managed" : "ephemeral",
-        origin: effectiveOrigin,
+      // Direct API call from popup — bypasses background SW which is
+      // unreliable on iOS Safari. The popup has network access via
+      // host_permissions: ["https://*/*"].
+      const apiBase = settings.apiBaseUrl.replace(/\/$/, "");
+      const mode = settings.managedModeEnabled ? "managed" : "ephemeral";
+
+      const resp = await fetch(`${apiBase}/alias/generate`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mode, label: document.title.slice(0, 64) }),
       });
-      if (res?.ok && res.record) return;
-      if (res && !res.ok) {
-        setError((res.error as ErrorCode) ?? "unknown");
-        return;
-      }
-      // res === undefined → SW silent. In dev builds, fall through to the
-      // popup-side demo fallback below. In production, surface an error.
-      if (!__SHIELDMAIL_DEV__) {
-        setError("network_unavailable");
-        return;
-      }
-    } catch {
-      if (!__SHIELDMAIL_DEV__) {
+
+      if (!resp.ok) {
         setError("unknown");
         return;
       }
-    }
 
-    // DEV-ONLY POPUP-SIDE DEMO FALLBACK: synthesize alias + OTP entirely
-    // in popup so the UI flow can be exercised without the background SW.
-    // This entire block is dead code in production builds (constant folded).
-    if (!__SHIELDMAIL_DEV__) return;
-    try {
-      const buf = new Uint8Array(7);
-      crypto.getRandomValues(buf);
-      const aliasId = Array.from(buf, (b) => b.toString(16).padStart(2, "0"))
-        .join("")
-        .slice(0, 14);
-      const domain = "shldmail.work";
+      const data = (await resp.json()) as {
+        aliasId: string;
+        address: string;
+        expiresAt: number | null;
+        pollToken: string;
+      };
+
       const record: AliasRecord = {
-        aliasId,
-        address: `${aliasId}@${domain}`,
-        expiresAt: Date.now() + 60 * 60 * 1000,
-        pollToken: `demo:${aliasId}`,
-        mode: settings.managedModeEnabled ? "managed" : "ephemeral",
+        aliasId: data.aliasId,
+        address: data.address,
+        expiresAt: data.expiresAt ? data.expiresAt * 1000 : null,
+        pollToken: data.pollToken,
+        mode,
         createdAt: Date.now(),
         origin: effectiveOrigin,
       };
 
+      // Save to storage so useActiveAliases picks it up.
       if (typeof chrome !== "undefined" && chrome.storage?.local) {
         const cur = (await chrome.storage.local.get("activeAliases")) as {
           activeAliases?: Record<string, AliasRecord>;
         };
-        const next = { ...(cur.activeAliases ?? {}), [aliasId]: record };
+        const next = { ...(cur.activeAliases ?? {}), [record.aliasId]: record };
         await chrome.storage.local.set({ activeAliases: next });
       }
-
-      const fakeOtp = String(Math.floor(100000 + Math.random() * 900000));
-      setMessages([
-        {
-          id: `demo-${Date.now()}`,
-          otp: fakeOtp,
-          confidence: 0.95,
-          receivedAt: Date.now(),
-          verifyLinks: ["https://demo.local/verify/demo"],
-        },
-      ]);
     } catch {
-      setError("unknown");
+      setError("network_unavailable");
     } finally {
       setGenerating(false);
     }
