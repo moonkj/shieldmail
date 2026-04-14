@@ -397,3 +397,61 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 - demo 사이트 정적 페이지 (`docs/demo/signup.html`)
 - App Store 제출 자동화 (xcrun altool)
 - B 트랙 잔여 (도메인 등록 필요)
+
+## 2026-04-14 — R13: 실기기 E2E 버그픽스 (방패 버튼 → OTP 수신 → 코드 표시)
+
+### 배경
+사용자가 iPhone Air 실기기에서 "방패 버튼 누르면 에러" 보고.
+팀 워크플로우(과학적 토론 + 가설 분기 + 교차 레이어 조정) 적용하여 디버깅.
+
+### Bug 1: 방패 버튼 에러 — CORS 미설정
+- **원인**: 최근 커밋에서 background SW 우회 → content script/popup이 직접 `fetch()` → Worker에 CORS 헤더 없음 → preflight 실패
+- **수정**: `workers/email-router/src/router.ts`에 Hono CORS 미들웨어 추가 (`origin: *`, `allowHeaders: Content-Type, Authorization`, `maxAge: 86400`)
+- 즉시 `wrangler deploy`
+
+### Bug 2: 팝업/폼 주소 불일치
+- **원인**: `ios-injector.ts`에서 `pollToken: ""` 저장 + iOS Safari content script에서 `chrome.storage.local` 접근 실패 (silent catch) → 팝업이 별도 alias 생성
+- **가설 분기** (3명 병렬):
+  - 가설A: storage 접근 실패 → **확인됨** (iOS Safari content script storage 격리)
+  - 가설B: 이메일 파이프라인 → **정상** (expiresAt 단위 일치, OTP 파서 정상)
+  - 가설C: Email Routing 설정 → **Dashboard 확인 완료** (catch-all → Worker Active)
+- **수정 1단계**: `STORE_ALIAS` 메시지 타입 + background handler → 여전히 실패 (background SW 미응답)
+- **수정 2단계**: popup ↔ content script 직접 통신 (`GET_ACTIVE_ALIAS` via `chrome.tabs.sendMessage`)
+  - `ios-injector.ts`: `lastGeneratedAlias` in-memory 저장 + `getLastGeneratedAlias()` getter
+  - `content/index.ts`: `GET_ACTIVE_ALIAS` onMessage 핸들러
+  - `MainScreen.tsx`: 마운트 시 content script에서 alias 직접 조회 → `contentAlias` 우선 사용
+
+### Bug 3: OTP 미추출 (Canva)
+- **진단**: `wrangler tail`로 이메일 도착 확인 → `otp=none confidence=0 links=2`
+- **원인**: text/plain에 "코드를 입력하여" (standalone `코드`) → OTP 파서에 한국어 `코드` 단독 키워드 없음 (score 3 < threshold 5)
+- **수정**: `otp.ts`에 `{ re: /코드/, weight: 6, standaloneCode: true }` 추가
+- 추가: text/plain과 HTML→text 양쪽 스캔 후 `pickBestOtp()` 선택
+
+### Bug 4: OTP 미추출 (Slack)
+- **진단**: Slack 코드 `XFL-W3D` (영숫자+하이픈) → `\d{6}` 패턴 미매칭
+- **수정**: 하이픈 영숫자 패턴 `[A-Z0-9]{2,4}-[A-Z0-9]{2,4}` 추가
+- **근본 해결**: `keywordAnchorExtract` fallback 추가 — 키워드(`확인 코드`, `code is` 등) 근처 ±120자에서 코드형 토큰 자동 추출. 어떤 형식이든 처리 가능.
+
+### Bug 5: 페이지 전환 시 poller 소멸
+- **원인**: Slack SPA 내비게이션 → `main()` 재실행 안 됨 → 구 poller만 생존
+- **수정**: `sessionStorage`에 alias 저장 → content script 초기화 시 복원 + resumed poller 시작
+
+### 기능 추가: OTP 토스트 표시
+- content script에서 직접 API 폴링 (팝업 불필요)
+- 방패 버튼 상태: default → generating → done → polling(파란 펄스) → otp-done
+- OTP 수신 시 우상단 토스트 (`top:60px, right:12px`) 코드 표시 (60초, 페이지 전환 시 자동 제거)
+- 인증 링크: 새 탭 자동 열기
+
+### 커밋
+- `d83a957 fix: CORS + OTP pipeline — end-to-end shield button to code display`
+- `2679613 fix: keyword-anchor OTP fallback + remove debug toasts + toast position`
+
+### 핵심 교훈
+- iOS Safari content script에서 `chrome.storage.local`, `chrome.runtime.sendMessage` 모두 비신뢰 → in-memory + `sessionStorage` + `chrome.tabs.sendMessage`(popup→content 직접) 조합이 유일한 안정 경로
+- OTP 형식은 사이트마다 상이 (숫자 6자리, 영숫자 하이픈, spaced digits 등) → 패턴 개별 추가 대신 **키워드 앵커 fallback**으로 범용 커버
+- `wrangler tail`이 Worker 디버깅의 결정적 도구 (이메일 도착 여부, OTP 추출 결과 실시간 확인)
+
+### 다음 단계
+- macOS Safari Extension에서도 동일 OTP 흐름 검증
+- OTP 자동 입력 개선 (split field 지원 고도화)
+- 토스트 UX 사용자 피드백 반영

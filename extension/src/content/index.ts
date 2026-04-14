@@ -200,7 +200,33 @@ function showOtpToast(otp: string): void {
 
   document.body.appendChild(toast);
 
-  setTimeout(() => toast.remove(), 20000);
+  // Auto-dismiss after 60 seconds.
+  const timer = setTimeout(() => toast.remove(), 60000);
+
+  // Dismiss on page navigation (SPA pushState/replaceState + popstate).
+  const dismiss = (): void => {
+    clearTimeout(timer);
+    toast.remove();
+    window.removeEventListener("popstate", dismiss);
+  };
+  window.addEventListener("popstate", dismiss, { once: true });
+  // Intercept SPA navigations (pushState/replaceState).
+  const origPush = history.pushState;
+  const origReplace = history.replaceState;
+  history.pushState = function (...args) {
+    dismiss();
+    history.pushState = origPush;
+    history.replaceState = origReplace;
+    return origPush.apply(this, args);
+  };
+  history.replaceState = function (...args) {
+    dismiss();
+    history.pushState = origPush;
+    history.replaceState = origReplace;
+    return origReplace.apply(this, args);
+  };
+  // Full navigation: beforeunload.
+  window.addEventListener("beforeunload", dismiss, { once: true });
 }
 
 // ── OTP auto-fill listener ──────────────────────────────────────
