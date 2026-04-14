@@ -13,6 +13,8 @@
 
 import { sendMessage } from "./bridge";
 import { haptic, appendRecentAlias } from "./ios-bridge";
+import { getOrCreateDeviceId } from "../lib/device";
+import { getSubscriptionState } from "../lib/subscription";
 import type { AliasMode, RuntimeMessage } from "../lib/types";
 
 type IconState =
@@ -468,17 +470,30 @@ export class IOSFloatingButtonInjector {
     try {
       const apiBase = "https://api.shldmail.work";
       const mode = this.deps.getMode();
+
+      const [deviceId, sub] = await Promise.all([
+        getOrCreateDeviceId(),
+        getSubscriptionState(),
+      ]);
+
+      const body: Record<string, unknown> = {
+        mode,
+        label: document.title.slice(0, 64),
+        deviceId,
+      };
+      if (sub.jws) body.subscriptionJWS = sub.jws;
+
       const resp = await fetch(`${apiBase}/alias/generate`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode, label: document.title.slice(0, 64) }),
+        body: JSON.stringify(body),
       });
 
       // Handle 403 daily_limit_exceeded
       if (resp.status === 403) {
         try {
           const errData = (await resp.json()) as { code?: string };
-          if (errData.code === "daily_limit_exceeded") {
+          if (errData.error === "daily_limit_exceeded") {
             showLimitToast();
             this.setState("error");
             haptic("error");

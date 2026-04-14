@@ -4,6 +4,7 @@ import type { Context } from "hono";
 import type { Env, AliasRecord } from "./types/env.js";
 import { generateAliasId, pickDomain, fullAddress } from "./lib/alias.js";
 import { signPollToken, verifyPollToken, hashTokenForStorage } from "./lib/jwt.js";
+import { verifyAppleJWS } from "./lib/apple-jws.js";
 
 /**
  * Hono router for the public API.
@@ -87,8 +88,16 @@ export function buildRouter(): Hono<RouterCtx> {
       typeof body.deviceId === "string" && body.deviceId.length > 0
         ? body.deviceId
         : undefined;
-    const identifier = deviceId ?? clientIp;
-    const tier: "free" | "pro" = body.subscriptionJWS ? "pro" : "free";
+    let tier: "free" | "pro" = "free";
+    if (typeof body.subscriptionJWS === "string" && body.subscriptionJWS.length > 0) {
+      const jwsResult = await verifyAppleJWS(body.subscriptionJWS);
+      if (jwsResult.valid && jwsResult.productId === "me.shld.shieldmail.pro.monthly") {
+        tier = "pro";
+      }
+    }
+    // Free tier: always use IP to prevent deviceId spoofing.
+    // Pro tier: use deviceId (verified via JWS) for cross-network consistency.
+    const identifier = tier === "pro" && deviceId ? deviceId : clientIp;
 
     const quotaResult = await checkDailyQuota(env, identifier, tier);
     if (!quotaResult.allowed) {

@@ -19,6 +19,16 @@ vi.mock("../src/content/ios-bridge", () => ({
   storeToken: vi.fn(),
   loadToken: vi.fn(() => Promise.resolve(null)),
 }));
+// ── Mock device ID ────────────────────────────────────────────
+vi.mock("../src/lib/device", () => ({
+  getOrCreateDeviceId: vi.fn(() => Promise.resolve("test-device-id")),
+}));
+// ── Mock subscription state ───────────────────────────────────
+vi.mock("../src/lib/subscription", () => ({
+  getSubscriptionState: vi.fn(() =>
+    Promise.resolve({ tier: "free", jws: null, expiresDate: null }),
+  ),
+}));
 
 import { sendMessage } from "../src/content/bridge";
 import { haptic, appendRecentAlias } from "../src/content/ios-bridge";
@@ -262,6 +272,8 @@ describe("IOSFloatingButtonInjector", () => {
     injector.show();
     const btn = queryButton()!;
     btn.click(); // starts generating
+    // Wait for async setup (deviceId + subscription) before second click.
+    await new Promise((r) => setTimeout(r, 50));
     btn.click(); // should be ignored
 
     expect(fetchMock).toHaveBeenCalledTimes(1);

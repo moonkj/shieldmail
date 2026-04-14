@@ -3,6 +3,9 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <!-- MVP: persistence via browser.storage.local, no Keychain/AppGroup needed -->
+  <key>com.apple.security.application-groups</key>
+  <array>
+    <string>group.me.shld.shieldmail</string>
+  </array>
 </dict>
 </plist>

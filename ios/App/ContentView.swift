@@ -1,8 +1,11 @@
 import SwiftUI
-import UIKit
+import StoreKit
 
-/// Container app — onboarding + feature guide.
+/// Container app — onboarding + feature guide + subscription management.
 struct ContentView: View {
+
+    @StateObject private var subscriptionManager = SubscriptionManager()
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -24,6 +27,9 @@ struct ContentView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                     }
+
+                    // Subscription section
+                    SubscriptionSection(manager: subscriptionManager)
 
                     // How it works
                     VStack(alignment: .leading, spacing: 20) {
@@ -99,6 +105,100 @@ struct ContentView: View {
             }
             .navigationBarHidden(true)
         }
+        .task {
+            await subscriptionManager.loadProducts()
+            await subscriptionManager.checkEntitlements()
+            subscriptionManager.listenForUpdates()
+        }
+    }
+}
+
+// MARK: - Subscription Section
+
+private struct SubscriptionSection: View {
+
+    @ObservedObject var manager: SubscriptionManager
+
+    var body: some View {
+        VStack(spacing: 14) {
+            // Current plan badge
+            HStack(spacing: 8) {
+                Image(systemName: manager.tier == "pro" ? "crown.fill" : "person.crop.circle")
+                    .foregroundStyle(manager.tier == "pro" ? .yellow : .secondary)
+                Text(manager.tier == "pro" ? "Pro 구독 중" : "Free 플랜")
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                if manager.tier == "pro" {
+                    Button("구독 관리") {
+                        Task { await manager.showManageSubscriptions() }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.blue)
+                }
+            }
+            .padding(.horizontal, 24)
+
+            if manager.tier != "pro" {
+                // Upgrade button
+                Button {
+                    Task {
+                        try? await manager.purchase()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "crown.fill")
+                        Text("Pro 구독하기")
+                            .fontWeight(.semibold)
+                        Text("· 월 \(manager.displayPrice)")
+                            .fontWeight(.regular)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color(red: 0, green: 0.831, blue: 0.667))
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(manager.isLoading)
+                .padding(.horizontal, 24)
+
+                // Restore button
+                Button {
+                    Task { await manager.restore() }
+                } label: {
+                    Text("이전 구매 복원")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .disabled(manager.isLoading)
+            }
+
+            // Loading indicator
+            if manager.isLoading {
+                ProgressView()
+                    .padding(.top, 4)
+            }
+
+            // Error message
+            if let error = manager.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .onAppear {
+                        // Auto-dismiss after 5 seconds
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            if manager.errorMessage == error {
+                                manager.errorMessage = nil
+                            }
+                        }
+                    }
+            }
+        }
+        .padding(.vertical, 16)
+        .background(Color(.systemGray6).opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal, 16)
     }
 }
 

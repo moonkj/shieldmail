@@ -17,6 +17,8 @@ import {
   useSettings,
 } from "../state/store.js";
 import { sendRuntime } from "../../lib/messaging.js";
+import { getOrCreateDeviceId } from "../../lib/device.js";
+import { getSubscriptionState } from "../../lib/subscription.js";
 import type { ErrorCode, SseActiveMessage, SseInactiveMessage } from "../../lib/messaging.js";
 import type { AliasRecord, ExtractedMessage, RuntimeMessage, SubscriptionTier } from "../../lib/types.js";
 import type { Screen } from "../App.js";
@@ -41,7 +43,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
 
   // ── Usage / Subscription state ──
   const [usageUsed, setUsageUsed] = useState(0);
-  const [usageLimit, setUsageLimit] = useState(20);
+  const [usageLimit, setUsageLimit] = useState(1);
   const [usageTier, setUsageTier] = useState<SubscriptionTier>("free");
   const [showLimitSheet, setShowLimitSheet] = useState(false);
 
@@ -181,17 +183,29 @@ export function MainScreen({ navigate }: MainScreenProps) {
       const apiBase = settings.apiBaseUrl.replace(/\/$/, "");
       const mode = settings.managedModeEnabled ? "managed" : "ephemeral";
 
+      const [deviceId, sub] = await Promise.all([
+        getOrCreateDeviceId(),
+        getSubscriptionState(),
+      ]);
+
+      const reqBody: Record<string, unknown> = {
+        mode,
+        label: document.title.slice(0, 64),
+        deviceId,
+      };
+      if (sub.jws) reqBody.subscriptionJWS = sub.jws;
+
       const resp = await fetch(`${apiBase}/alias/generate`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mode, label: document.title.slice(0, 64) }),
+        body: JSON.stringify(reqBody),
       });
 
       // Handle 403 daily_limit_exceeded
       if (resp.status === 403) {
         try {
           const errData = (await resp.json()) as { code?: string; remaining?: number; limit?: number; tier?: string };
-          if (errData.code === "daily_limit_exceeded") {
+          if (errData.error === "daily_limit_exceeded") {
             if (typeof errData.remaining === "number") setUsageUsed(errData.limit ?? usageLimit);
             if (typeof errData.limit === "number") setUsageLimit(errData.limit);
             if (errData.tier === "free" || errData.tier === "pro") setUsageTier(errData.tier);

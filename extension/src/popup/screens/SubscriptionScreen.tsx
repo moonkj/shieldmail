@@ -1,6 +1,12 @@
 import { h } from "preact";
+import { useEffect, useState } from "preact/hooks";
 import { PrivacyFooter } from "../components/PrivacyFooter.js";
 import { getMessages } from "../i18n/index.js";
+import {
+  getSubscriptionState,
+  refreshSubscriptionState,
+  requestPurchase,
+} from "../../lib/subscription.js";
 import type { Screen } from "../App.js";
 import type { SubscriptionTier } from "../../lib/types.js";
 
@@ -11,15 +17,31 @@ export interface SubscriptionScreenProps {
 const t = getMessages();
 
 export function SubscriptionScreen({ navigate }: SubscriptionScreenProps) {
-  // TODO: read actual tier from storage / StoreKit (Wave 3)
-  const tier = "free" as SubscriptionTier;
+  const [tier, setTier] = useState<SubscriptionTier>("free");
+  const [loading, setLoading] = useState(true);
+
+  // Load subscription state on mount.
+  useEffect(() => {
+    let mounted = true;
+    void getSubscriptionState().then((state) => {
+      if (mounted) {
+        setTier(state.tier);
+        setLoading(false);
+      }
+    });
+    return () => { mounted = false; };
+  }, []);
 
   const handleSubscribe = (): void => {
-    // Placeholder — StoreKit integration in Wave 3
+    void requestPurchase();
   };
 
   const handleRestore = (): void => {
-    // Placeholder — StoreKit restore purchases in Wave 3
+    setLoading(true);
+    void refreshSubscriptionState().then((state) => {
+      setTier(state.tier);
+      setLoading(false);
+    });
   };
 
   const handleManage = (): void => {
@@ -47,7 +69,7 @@ export function SubscriptionScreen({ navigate }: SubscriptionScreenProps) {
         <div class="sm-card">
           <div class="sm-section-label">{t.subscription.currentPlan}</div>
           <div class="sm-subscription-plan">
-            {tier === "pro" ? "Pro" : t.subscription.freePlan}
+            {loading ? "..." : tier === "pro" ? "Pro" : t.subscription.freePlan}
           </div>
         </div>
 
