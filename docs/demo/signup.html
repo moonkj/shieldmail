@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShieldMail Demo — 회원가입</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --accent: #007AFF; --bg: #f5f5f7; --card: #fff; --text: #1d1d1f; --muted: #86868b; --radius: 12px; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #1c1c1e; --card: #2c2c2e; --text: #f5f5f7; --muted: #98989d; }
+    }
+    html { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; background: var(--bg); color: var(--text); }
+    body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 40px 32px; max-width: 420px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; text-align: center; }
+    .subtitle { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+    input { width: 100%; padding: 12px 14px; border: 1px solid #d1d1d6; border-radius: 8px; font-size: 16px; background: var(--bg); color: var(--text); outline: none; transition: border-color 200ms; }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,255,0.15); }
+    .field { margin-bottom: 20px; }
+    button[type="submit"] { width: 100%; padding: 14px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 150ms; }
+    button[type="submit"]:hover { opacity: 0.85; }
+    button[type="submit"]:active { opacity: 0.7; }
+    .divider { display: flex; align-items: center; margin: 24px 0; color: var(--muted); font-size: 12px; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #d1d1d6; }
+    .divider span { padding: 0 12px; }
+    .social { display: flex; gap: 12px; }
+    .social button { flex: 1; padding: 10px; border: 1px solid #d1d1d6; border-radius: 8px; background: var(--card); font-size: 14px; cursor: pointer; color: var(--text); }
+    .result { margin-top: 20px; padding: 16px; border-radius: 8px; background: #e8f5e9; color: #2e7d32; font-size: 14px; display: none; }
+    @media (prefers-color-scheme: dark) {
+      .result { background: #1b3a1f; color: #81c784; }
+      input { border-color: #48484a; }
+      .divider::before, .divider::after { background: #48484a; }
+      .social button { border-color: #48484a; }
+    }
+    .badge { display: inline-block; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
+    .note { margin-top: 24px; padding: 12px 16px; border-left: 3px solid var(--accent); background: rgba(0,122,255,0.05); border-radius: 0 8px 8px 0; font-size: 12px; color: var(--muted); }
+    .note strong { color: var(--text); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Demo Service <span class="badge">DEMO</span></h1>
+    <p class="subtitle">ShieldMail 테스트용 가입 페이지입니다</p>
+
+    <form id="signup-form" autocomplete="off">
+      <div class="field">
+        <label for="email">이메일 (개인 또는 업무)</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+      </div>
+      <div class="field">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" placeholder="8자 이상" minlength="8" required>
+      </div>
+      <div class="field">
+        <label for="name">이름 (선택)</label>
+        <input type="text" id="name" name="name" placeholder="홍길동">
+      </div>
+      <button type="submit">가입하기</button>
+    </form>
+
+    <div class="divider"><span>또는</span></div>
+
+    <div class="social">
+      <button type="button" onclick="alert('소셜 로그인은 데모에서 지원하지 않습니다.')">Google</button>
+      <button type="button" onclick="alert('소셜 로그인은 데모에서 지원하지 않습니다.')">Apple</button>
+    </div>
+
+    <div class="result" id="result"></div>
+
+    <div class="note">
+      <strong>App Store 리뷰어 안내</strong><br>
+      이 페이지는 ShieldMail Safari Extension의 동작을 테스트하기 위한 데모 사이트입니다.
+      이메일 필드를 탭하면 ShieldMail 방패 아이콘이 나타나고, 탭하면 임시 이메일 주소가 자동 생성됩니다.
+      실제 이메일 발송이나 계정 생성은 이루어지지 않습니다.
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('signup-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var email = document.getElementById('email').value;
+      var result = document.getElementById('result');
+      result.style.display = 'block';
+      result.textContent = '✓ 가입 성공 (데모) — 입력된 이메일: ' + email;
+
+      // Simulate OTP email after 3 seconds
+      setTimeout(function() {
+        result.textContent += '\n📧 인증 메일이 ' + email + '으로 전송되었습니다. (데모 시뮬레이션)';
+      }, 3000);
+    });
+  </script>
+</body>
+</html>
