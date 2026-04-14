@@ -8,6 +8,7 @@ import { LoadingSkeleton } from "../components/LoadingSkeleton.js";
 import { ErrorCard } from "../components/ErrorCard.js";
 import { getMessages } from "../i18n/index.js";
 import {
+  getActiveTabId,
   getActiveTabOrigin,
   onRuntimeMessage,
   useActiveAliases,
@@ -33,6 +34,8 @@ export function MainScreen({ navigate }: MainScreenProps) {
   const [generating, setGenerating] = useState(false);
   const [addressCopied, setAddressCopied] = useState(false);
   const [now, setNow] = useState(Date.now());
+  // Alias fetched directly from content script (bypasses storage + background).
+  const [contentAlias, setContentAlias] = useState<AliasRecord | null>(null);
 
   // Countdown tick for inline TTL display
   useEffect(() => {
@@ -44,9 +47,35 @@ export function MainScreen({ navigate }: MainScreenProps) {
     void getActiveTabOrigin().then(setOrigin);
   }, []);
 
+  // On mount: ask the content script for the alias it generated via the shield
+  // button. Uses chrome.tabs.sendMessage → content script's onMessage handler.
+  // This bypasses both chrome.storage and background SW entirely.
+  useEffect(() => {
+    void (async () => {
+      try {
+        const tabId = await getActiveTabId();
+        if (!tabId) return;
+        const resp = await chrome.tabs.sendMessage(tabId, { type: "GET_ACTIVE_ALIAS" }) as
+          | { ok: true; record: AliasRecord }
+          | { ok: false };
+        if (resp?.ok && resp.record?.address) {
+          setContentAlias(resp.record);
+          // Also save to storage so polling and other features work.
+          if (chrome.storage?.local) {
+            const cur = (await chrome.storage.local.get("activeAliases")) as {
+              activeAliases?: Record<string, AliasRecord>;
+            };
+            const next = { ...(cur.activeAliases ?? {}), [resp.record.aliasId]: resp.record };
+            await chrome.storage.local.set({ activeAliases: next });
+          }
+        }
+      } catch { /* content script may not be injected on this page */ }
+    })();
+  }, []);
+
   const activeAlias: AliasRecord | undefined = useMemo(
-    () => aliases.find((a) => a.origin === origin) ?? aliases[0],
-    [aliases, origin],
+    () => contentAlias ?? aliases.find((a) => a.origin === origin) ?? aliases[0],
+    [contentAlias, aliases, origin],
   );
 
   // Poll messages directly from the Worker API (bypasses background SW).
@@ -74,6 +103,17 @@ export function MainScreen({ navigate }: MainScreenProps) {
             return [...byId.values()].sort((a, b) => b.receivedAt - a.receivedAt);
           });
           setError(null);
+          // Send OTP to content script for auto-fill into the page's code field.
+          try {
+            const tabId = await getActiveTabId();
+            if (tabId) {
+              void chrome.tabs.sendMessage(tabId, {
+                type: "FETCH_MESSAGES_RESULT",
+                ok: true,
+                messages: data.messages,
+              });
+            }
+          } catch { /* best-effort */ }
           return; // Stop polling — OTP arrived.
         }
         if (data.expired) return; // Stop polling.

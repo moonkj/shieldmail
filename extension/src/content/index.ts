@@ -15,7 +15,7 @@
 
 import { DEFAULT_SETTINGS, type UserSettings } from "../lib/types";
 import { ShieldIconInjector } from "./injector";
-import { IOSFloatingButtonInjector } from "./ios-injector";
+import { IOSFloatingButtonInjector, getLastGeneratedAlias, restorePersistedAlias, setOtpCallback, setVerifyLinkCallback } from "./ios-injector";
 import { SignupObserver } from "./observer";
 import { sendMessage } from "./bridge";
 import { findEmailLikeInput } from "./detect/forms";
@@ -54,33 +54,172 @@ function loadSettings(): void {
 
 const OTP_FIELD_HINTS = /otp|code|verify|verif|token|pin|인증|확인/i;
 
-function findOtpInput(): HTMLInputElement | null {
+/** Result of OTP field search — single field or split (per-digit) fields. */
+type OtpTarget =
+  | { kind: "single"; input: HTMLInputElement }
+  | { kind: "split"; inputs: HTMLInputElement[] };
+
+function findOtpTarget(): OtpTarget | null {
   const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
-  for (const input of inputs) {
-    if (input.type === "hidden" || input.disabled) continue;
-    // Explicit autocomplete signal (highest confidence)
+  const visible = inputs.filter((i) => i.type !== "hidden" && !i.disabled && i.offsetParent !== null);
+
+  // 1. Single-field: autocomplete="one-time-code"
+  for (const input of visible) {
     const ac = (input.getAttribute("autocomplete") ?? "").toLowerCase();
-    if (ac === "one-time-code") return input;
-    // inputmode="numeric" + short maxLength (4-8 digits)
+    if (ac === "one-time-code") return { kind: "single", input };
+  }
+
+  // 2. Split fields: group of 4-8 adjacent single-char inputs (Slack, Discord, etc.)
+  const singleChar = visible.filter((i) => {
+    const ml = i.maxLength;
+    return (ml === 1 || ml === -1) && (i.inputMode === "numeric" || i.type === "tel" || i.type === "text" || i.type === "number");
+  });
+  if (singleChar.length >= 4 && singleChar.length <= 8) {
+    // Verify they share a common parent (same OTP group).
+    const parent = singleChar[0]!.closest("[data-testid], [class*=otp], [class*=code], [class*=pin], [role=group], form, div");
+    if (parent) {
+      const inParent = singleChar.filter((i) => parent.contains(i));
+      if (inParent.length >= 4 && inParent.length <= 8) {
+        return { kind: "split", inputs: inParent };
+      }
+    }
+    // Fallback: if they're contiguous in DOM order, treat as split.
+    return { kind: "split", inputs: singleChar };
+  }
+
+  // 3. Single-field: inputmode="numeric" + maxLength 4-8
+  for (const input of visible) {
     const im = input.inputMode ?? (input.getAttribute("inputmode") ?? "");
     const ml = input.maxLength;
-    if (im === "numeric" && ml >= 4 && ml <= 8) return input;
-    // Heuristic: name/id/placeholder hint
-    const hay = `${input.name} ${input.id} ${input.placeholder} ${input.getAttribute("aria-label") ?? ""}`;
-    if (OTP_FIELD_HINTS.test(hay)) return input;
+    if (im === "numeric" && ml >= 4 && ml <= 8) return { kind: "single", input };
   }
+
+  // 4. Single-field: name/id/placeholder hint
+  for (const input of visible) {
+    const hay = `${input.name} ${input.id} ${input.placeholder} ${input.getAttribute("aria-label") ?? ""}`;
+    if (OTP_FIELD_HINTS.test(hay)) return { kind: "single", input };
+  }
+
+  return null;
+}
+
+// Legacy wrapper used by setupOtpAutoFill listener.
+function findOtpInput(): HTMLInputElement | null {
+  const t = findOtpTarget();
+  return t?.kind === "single" ? t.input : t?.kind === "split" ? t.inputs[0]! : null;
+}
+
+function fillOtp(otp: string): boolean {
+  const nativeSet = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype, "value"
+  )?.set;
+
+  const target = findOtpTarget();
+
+  if (target?.kind === "single") {
+    const input = target.input;
+    input.focus();
+    if (nativeSet) nativeSet.call(input, otp);
+    else input.value = otp;
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, cancelable: true, inputType: "insertText", data: otp }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    // Verify the value actually changed.
+    return input.value === otp;
+  }
+
+  // Split or unknown fields: don't attempt — show toast instead.
+  return false;
+}
+
+/** Broader search: any visible input that looks like it could accept an OTP. */
+function findFirstOtpLikeInput(): HTMLInputElement | null {
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input"));
+  for (const input of inputs) {
+    if (input.type === "hidden" || input.disabled || !input.offsetParent) continue;
+    const ml = input.maxLength;
+    const im = input.inputMode ?? (input.getAttribute("inputmode") ?? "");
+    const t = input.type;
+    // Single-char inputs (split OTP)
+    if (ml === 1 && (im === "numeric" || t === "tel" || t === "text" || t === "number")) return input;
+    // Short numeric inputs
+    if (im === "numeric" && (ml <= 8 || ml === -1)) return input;
+    // Tel type with short maxLength (common OTP pattern)
+    if (t === "tel" && (ml <= 8 || ml === -1)) return input;
+  }
+  // Last resort: currently focused input
+  const active = document.activeElement;
+  if (active instanceof HTMLInputElement && active.type !== "hidden") return active;
   return null;
 }
 
 function fillOtpField(input: HTMLInputElement, otp: string): void {
-  // Use the React-compatible value setter to trigger controlled components.
-  const nativeSet = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype, "value"
-  )?.set;
-  if (nativeSet) nativeSet.call(input, otp);
-  else input.value = otp;
-  input.dispatchEvent(new InputEvent("input", { bubbles: true, cancelable: true, inputType: "insertText", data: otp }));
-  input.dispatchEvent(new Event("change", { bubbles: true }));
+  // Try smart fill first (handles split fields), fall back to single.
+  if (!fillOtp(otp)) {
+    const nativeSet = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype, "value"
+    )?.set;
+    if (nativeSet) nativeSet.call(input, otp);
+    else input.value = otp;
+    input.dispatchEvent(new InputEvent("input", { bubbles: true, cancelable: true, inputType: "insertText", data: otp }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+
+// ── OTP toast ──────────────────────────────────────────────────
+
+/** Small status toast at bottom of screen. */
+function showDebugToast(text: string): void {
+  document.querySelector("[data-shieldmail-status]")?.remove();
+  const el = document.createElement("div");
+  el.setAttribute("data-shieldmail-status", "");
+  Object.assign(el.style, {
+    position: "fixed", bottom: "50px", left: "50%",
+    transform: "translateX(-50%)", zIndex: "2147483647",
+    background: "#007AFF", color: "#fff", borderRadius: "20px",
+    padding: "8px 18px", fontSize: "13px",
+    fontFamily: "-apple-system, sans-serif",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+    pointerEvents: "none",
+  });
+  el.textContent = text;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity 300ms"; setTimeout(() => el.remove(), 300); }, 5000);
+}
+
+/** Copy text to clipboard (requires user gesture on iOS Safari). */
+function copyText(text: string): void {
+  navigator.clipboard?.writeText(text).catch(() => {});
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0;";
+  document.body.appendChild(ta);
+  ta.select();
+  ta.setSelectionRange(0, text.length);
+  document.execCommand("copy");
+  ta.remove();
+}
+
+function showOtpToast(otp: string): void {
+  document.querySelectorAll("[data-shieldmail-toast],[data-shieldmail-status]").forEach(e => e.remove());
+
+  const toast = document.createElement("div");
+  toast.setAttribute("data-shieldmail-toast", "");
+  toast.style.cssText = [
+    "position:fixed", "top:40%", "left:50%",
+    "transform:translate(-50%,-50%)", "z-index:2147483647",
+    "background:#000", "color:#0f0",
+    "border-radius:14px", "padding:16px 28px",
+    "text-align:center", "font-family:-apple-system,sans-serif",
+    "box-shadow:0 8px 24px rgba(0,0,0,0.5)",
+  ].join(";");
+
+  toast.innerHTML =
+    '<div style="font-size:12px;color:#aaa;margin-bottom:8px">인증 코드</div>' +
+    '<div style="font-size:36px;font-weight:800;letter-spacing:8px;color:#0f0">' + otp + '</div>';
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.remove(), 20000);
 }
 
 // ── OTP auto-fill listener ──────────────────────────────────────
@@ -131,6 +270,64 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
     getCurrentInput: () => currentInput,
   });
 
+  // OTP received: show code.
+  setOtpCallback((otp) => {
+    iosInjector.hideButton();
+    fillOtp(otp);
+    showOtpToast(otp);
+  });
+
+  // Verify link: open in a new tab when no OTP but a verify link arrives.
+  setVerifyLinkCallback((url) => {
+    window.open(url, "_blank", "noopener");
+    iosInjector.hideButton();
+  });
+
+  // Resume OTP polling if alias was persisted from a previous page.
+  const persisted = restorePersistedAlias();
+  showDebugToast(persisted ? `폴링 시작: ${persisted.aliasId.slice(0,6)}...` : "저장된 alias 없음");
+  if (persisted?.pollToken && persisted?.aliasId) {
+    const apiBase = "https://api.shldmail.work";
+    const maxMs = 5 * 60 * 1000;
+    const start = Date.now();
+    let pollCount = 0;
+    const resumePoll = async (): Promise<void> => {
+      if (Date.now() - start > maxMs) { showDebugToast("폴링 타임아웃(5분)"); return; }
+      pollCount++;
+      try {
+        const resp = await fetch(
+          `${apiBase}/alias/${encodeURIComponent(persisted.aliasId)}/messages`,
+          { headers: { authorization: `Bearer ${persisted.pollToken}` } },
+        );
+        if (!resp.ok) { showDebugToast(`폴링#${pollCount} HTTP ${resp.status}`); }
+        if (resp.ok) {
+          const data = (await resp.json()) as {
+            messages: Array<{ otp?: string; verifyLinks?: string[]; id: string }>;
+            expired: boolean;
+          };
+          if (data.expired) { showDebugToast("alias 만료됨"); return; }
+          const msgCount = data.messages?.length ?? 0;
+          if (msgCount > 0) showDebugToast(`메시지 ${msgCount}개 수신!`);
+          const msg = data.messages?.[0];
+          if (msg?.otp) {
+            showOtpToast(msg.otp);
+            try { sessionStorage.removeItem("__sm_alias__"); } catch {}
+            return;
+          }
+          if (msg?.verifyLinks?.[0]) {
+            window.open(msg.verifyLinks[0], "_blank", "noopener");
+            try { sessionStorage.removeItem("__sm_alias__"); } catch {}
+            return;
+          }
+        }
+      } catch (e) {
+        showDebugToast(`폴링 오류: ${e instanceof Error ? e.message : "?"}`);
+      }
+      setTimeout(resumePoll, 3000);
+    };
+    void resumePoll();
+  }
+
   const observer = new SignupObserver({
     threshold: () => settings.detectionThreshold,
     onActivated: (_form, result) => {
@@ -161,6 +358,18 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
       }
     }
   }, { passive: true });
+
+  // GET_ACTIVE_ALIAS: popup queries the content script directly for the
+  // last alias generated by the shield button. This bypasses both
+  // chrome.storage and the background SW — pure popup↔content messaging.
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if ((msg as { type?: string })?.type === "GET_ACTIVE_ALIAS") {
+      const alias = getLastGeneratedAlias();
+      sendResponse(alias ? { ok: true, record: alias } : { ok: false });
+      return false;
+    }
+    return undefined;
+  });
 
   // FORCE_INJECT receiver.
   // On iOS, Safari's dispatchMessageToScript routes to chrome.runtime.onMessage

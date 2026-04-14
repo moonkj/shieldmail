@@ -40,6 +40,7 @@ export type RuntimeMessage =
   | { type: "GENERATE_ALIAS"; mode: AliasMode; origin: string; label?: string }
   | { type: "GENERATE_ALIAS_RESULT"; ok: true; record: AliasRecord }
   | { type: "GENERATE_ALIAS_RESULT"; ok: false; error: string }
+  | { type: "STORE_ALIAS"; record: AliasRecord }
   | { type: "FETCH_MESSAGES"; aliasId: string }
   | { type: "FETCH_MESSAGES_RESULT"; ok: true; messages: ExtractedMessage[]; expired: boolean }
   | { type: "FETCH_MESSAGES_RESULT"; ok: false; error: string }

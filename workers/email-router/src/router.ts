@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import type { Context } from "hono";
 import type { Env, AliasRecord } from "./types/env.js";
 import { generateAliasId, pickDomain, fullAddress } from "./lib/alias.js";
@@ -28,6 +29,19 @@ interface RouterCtx {
 
 export function buildRouter(): Hono<RouterCtx> {
   const app = new Hono<RouterCtx>();
+
+  // CORS: extension content scripts and popup make direct API calls
+  // (chrome-extension://, safari-web-extension:// origins). Auth is
+  // token-based so permissive origin is safe.
+  app.use(
+    "*",
+    cors({
+      origin: "*",
+      allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
+      allowHeaders: ["Content-Type", "Authorization"],
+      maxAge: 86400,
+    }),
+  );
 
   // ──────────────────────────────────────────
   // POST /alias/generate

@@ -118,6 +118,20 @@ export async function dispatch(
         };
       }
     }
+    case "STORE_ALIAS": {
+      // Content script generated an alias via direct API call and delegates
+      // storage to the background (reliable chrome.storage access).
+      try {
+        await putActiveAlias(msg.record);
+        if (msg.record.mode === "managed") await putManagedAlias(msg.record);
+        if (msg.record.pollToken) {
+          await deps.poller.start(msg.record.aliasId, msg.record.pollToken, msg.record.address);
+        }
+        return { ok: true };
+      } catch {
+        return { ok: false, error: "storage_failed" };
+      }
+    }
     case "FETCH_MESSAGES": {
       try {
         const found = await findAliasById(msg.aliasId);

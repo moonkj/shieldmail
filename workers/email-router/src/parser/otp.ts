@@ -30,10 +30,14 @@ const PATTERNS: ReadonlyArray<{ re: RegExp; bonus: number }> = [
   { re: /\b\d{6}\b/g, bonus: 3 },
   // 3-3 split: 123-456 / 123 456
   { re: /\b\d{3}[-\s]\d{3}\b/g, bonus: 3 },
+  // Spaced-out 6 digits: "1 2 3 4 5 6" (Canva, etc.)
+  { re: /(?<!\d)\d(?:\s\d){5}(?!\s?\d)/g, bonus: 3 },
   // 8-digit
   { re: /\b\d{8}\b/g, bonus: 2 },
   // Alphanumeric 6-8
   { re: /\b[A-Z0-9]{6,8}\b/g, bonus: 2 },
+  // Hyphenated alphanumeric: XFL-W3D, AB1-2CD (Slack, etc.)
+  { re: /\b[A-Z0-9]{2,4}-[A-Z0-9]{2,4}\b/g, bonus: 3 },
   // 4-digit (lowest priority)
   { re: /\b\d{4}\b/g, bonus: 1 },
 ];
@@ -66,10 +70,12 @@ const POSITIVE_KEYWORDS: ReadonlyArray<PositiveKeyword> = [
   // suppressed when any compound form already matched (see scoreCandidate).
   { re: /\bcode\b/i, weight: 6, standaloneCode: true },
   // Korean
-  { re: /인증\s*(?:번호|코드)?/, weight: 10 },
-  { re: /확인\s*(?:번호|코드)?/, weight: 9 },
+  { re: /인증\s*(?:번호|코드)?/, weight: 10, containsCode: true },
+  { re: /확인\s*(?:번호|코드)?/, weight: 9, containsCode: true },
   { re: /비밀번호/, weight: 8 },
   { re: /본인\s*확인/, weight: 9 },
+  // Standalone Korean "코드" — same role as English standalone "code".
+  { re: /코드/, weight: 6, standaloneCode: true },
   // IMP-1 [B-3]: multilang OTP keyword expansion (CJK).
   // Covers Simplified/Traditional Chinese and Japanese OTP phrases per
   // ARCHITECTURE.md §5 multilang spec. Each entry mirrors the +10 weight
