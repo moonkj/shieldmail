@@ -13,7 +13,6 @@ const t = getMessages();
 
 export function SettingsScreen({ navigate }: SettingsScreenProps) {
   const [settings, update] = useSettings();
-  const [apiRevealed, setApiRevealed] = useState(false);
 
   const version =
     typeof chrome !== "undefined" && chrome.runtime?.getManifest
@@ -72,36 +71,7 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
             onClick={() => void update({ autoCopyOtp: !settings.autoCopyOtp })}
           />
         </div>
-        {/* Managed Mode toggle hidden for MVP — feature deferred to post-launch */}
-        <div class="sm-settings-row">
-          <div>
-            <label>{t.settings.apiBaseUrl}</label>
-            <small>
-              {apiRevealed ? settings.apiBaseUrl : "••••••••"}
-            </small>
-          </div>
-          <button
-            type="button"
-            class="sm-btn ghost"
-            onClick={() => setApiRevealed((r) => !r)}
-          >
-            {apiRevealed ? "Hide" : "Show"}
-          </button>
-        </div>
-        <div class="sm-settings-row">
-          <label>{t.settings.openSource}</label>
-          <button
-            type="button"
-            class="sm-btn ghost"
-            onClick={() => {
-              if (typeof chrome !== "undefined" && chrome.tabs?.create) {
-                void chrome.tabs.create({ url: "https://github.com/moonkj/shieldmail" });
-              }
-            }}
-          >
-            GitHub →
-          </button>
-        </div>
+        {/* MVP: Managed Mode, API Base URL, GitHub link hidden — deferred to post-launch */}
         <div class="sm-settings-row">
           <label>{t.settings.version}</label>
           <small>{version}</small>
