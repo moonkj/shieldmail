@@ -30,6 +30,9 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"  # iPhone + iPad
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
         ENABLE_PREVIEWS: YES
+    scheme:
+      testPlans: []
+      storeKitConfiguration: ShieldMail.storekit
     dependencies:
       - target: ShieldMailExtension
         embed: true

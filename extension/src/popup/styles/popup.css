@@ -60,6 +60,13 @@ button {
   padding: var(--sm-space-2);
   border-radius: var(--sm-radius-sm);
   color: var(--sm-text-secondary);
+  font-size: 18px;
+  min-width: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .sm-body {

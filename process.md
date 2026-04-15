@@ -609,3 +609,44 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 - App Store Connect에서 앱 등록
 - StoreKit Configuration 파일 생성 (Sandbox 테스트)
 - TestFlight 베타 배포
+
+## 2026-04-15 — R18: App Store 등록 + Sandbox 구독 테스트 + 버그 수정
+
+### App Store Connect 등록
+- 앱 생성: "쉴드메일 - 탭 한번으로 가입, 내 메일은 안전하게"
+- 구독 상품 등록: `me.shld.shieldmail.pro.monthly` ($0.99/월, 1개월 자동 갱신)
+- 구독 그룹: ShieldMail Pro
+- 현지화: 한국어 (표시 이름 + 설명)
+- Apple Developer: App Groups 설정 (앱 + Extension 동일 그룹)
+
+### Sandbox 구독 테스트
+- Sandbox 테스터 계정 생성
+- 실기기에서 StoreKit 구매 성공 확인
+- iOS App → App Groups에 tier="pro" + JWS 저장 확인
+
+### 법적정보
+- GitHub Pages 배포 (moonkj.github.io/shieldmail/)
+- 개인정보 처리방침, 이용약관, 지원 HTML 페이지
+- iOS 앱 ContentView에 법적 링크 4개 추가
+- 이용약관(TERMS_OF_SERVICE.md), 지원(SUPPORT.md) 신규 작성
+
+### macOS Safari Extension
+- SubscriptionManager, ContentView, SafariExtensionHandler 구현
+- StoreKit 2, App Groups, 법적정보 링크 iOS와 동일
+- 빌드 성공, Safari 등록 문제로 테스트 보류
+
+### 버그 수정
+| 버그 | 원인 | 수정 |
+|---|---|---|
+| 팝업 0/1 표시 (구독 후) | native messaging 실패 → free fallback | chrome.storage에 cachedTier/cachedUsage 저장, 다중 소스 읽기 |
+| 토스트 60초 유지 | 타임아웃 너무 김 | 20초로 변경 |
+| URL scheme 미등록 | Info.plist에 shieldmail:// 없음 | CFBundleURLTypes 추가 + SceneDelegate 처리 |
+| 단축키 충돌 | Cmd+Shift+E가 Safari 기본 키와 충돌 | Alt+Shift+M으로 변경 |
+
+### iPad
+- 실기기 설치 완료 (iPhone과 동일 빌드)
+
+### 다음 단계
+- TestFlight 베타 배포
+- App Store 심사 제출 (스크린샷, 설명, 키워드)
+- macOS Safari Extension 등록 문제 해결

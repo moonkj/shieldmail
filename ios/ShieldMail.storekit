@@ -1,0 +1,103 @@
+{
+  "identifier" : "F2A8B3C1-D4E5-6F78-9A0B-1C2D3E4F5A6B",
+  "type" : "AutoRenewableSubscription",
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "shieldmail_pro",
+      "localizations" : [
+        {
+          "description" : "하루 20회 임시 이메일 생성",
+          "displayName" : "ShieldMail Pro",
+          "locale" : "ko"
+        },
+        {
+          "description" : "20 aliases per day",
+          "displayName" : "ShieldMail Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "ShieldMail Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "0.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "A1B2C3D4",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "하루 20회 임시 이메일 생성 + 우선 지원",
+              "displayName" : "월간 구독",
+              "locale" : "ko"
+            },
+            {
+              "description" : "20 aliases per day + priority support",
+              "displayName" : "Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "me.shld.shieldmail.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Monthly",
+          "subscriptionGroupID" : "shieldmail_pro",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "ShieldMail",
+    "_developerTeamID" : "QN975MTM7H",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "ko",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ],
+    "_timeRate" : 6
+  }
+}

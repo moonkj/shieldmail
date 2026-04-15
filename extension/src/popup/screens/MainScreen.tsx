@@ -57,24 +57,45 @@ export function MainScreen({ navigate }: MainScreenProps) {
     void getActiveTabOrigin().then(setOrigin);
   }, []);
 
-  // Read admin tier on mount — if admin set Pro, reflect it immediately.
+  // Read subscription/admin tier on mount from multiple sources.
   useEffect(() => {
-    try {
-      if (typeof chrome !== "undefined" && chrome.storage?.local) {
-        void chrome.storage.local.get(["adminMode", "adminTier"]).then((r: Record<string, unknown>) => {
+    void (async () => {
+      // 1. Try chrome.storage.local (cached tier from previous API response or admin).
+      try {
+        if (typeof chrome !== "undefined" && chrome.storage?.local) {
+          const r = await Promise.race([
+            chrome.storage.local.get(["cachedTier", "cachedUsage", "adminMode", "adminTier"]) as Promise<Record<string, unknown>>,
+            new Promise<Record<string, unknown>>((r) => setTimeout(() => r({}), 1500)),
+          ]);
+          const cached = r.cachedTier as string | undefined;
+          const cachedUsage = r.cachedUsage as { used?: number; limit?: number } | undefined;
+          if (cachedUsage && typeof cachedUsage.used === "number" && typeof cachedUsage.limit === "number") {
+            setUsageUsed(cachedUsage.used);
+            setUsageLimit(cachedUsage.limit);
+          }
+          if (cached === "pro") {
+            setUsageTier("pro");
+            if (!cachedUsage) setUsageLimit(20);
+            return;
+          }
           if ((r as { adminMode?: boolean }).adminMode) {
             const t = (r as { adminTier?: string }).adminTier;
-            if (t === "pro") {
-              setUsageTier("pro");
-              setUsageLimit(20);
-            } else if (t === "free") {
-              setUsageTier("free");
-              setUsageLimit(1);
-            }
+            if (t === "pro") { setUsageTier("pro"); setUsageLimit(20); return; }
           }
-        });
-      }
-    } catch {}
+        }
+      } catch {}
+      // 2. Try native messaging (StoreKit).
+      try {
+        const { getSubscriptionState } = await import("../../lib/subscription.js");
+        const sub = await getSubscriptionState();
+        if (sub.tier === "pro") {
+          setUsageTier("pro");
+          setUsageLimit(20);
+          // Cache for next popup open.
+          try { await chrome.storage?.local?.set({ cachedTier: "pro" }); } catch {}
+        }
+      } catch {}
+    })();
   }, []);
 
   // On mount: ask the content script for the alias it generated via the shield
@@ -269,6 +290,8 @@ export function MainScreen({ navigate }: MainScreenProps) {
       }
       if (data.tier === "free" || data.tier === "pro") {
         setUsageTier(data.tier);
+        // Cache tier so next popup open reflects it immediately.
+        try { void chrome.storage?.local?.set({ cachedTier: data.tier }); } catch {}
       }
 
       const record: AliasRecord = {

@@ -550,6 +550,13 @@ export class IOSFloatingButtonInjector {
           }));
         } catch { /* best-effort */ }
       }
+      // Cache tier + usage in chrome.storage so popup reads it on next open.
+      try {
+        void chrome.storage?.local?.set({
+          cachedTier: data.tier ?? "free",
+          cachedUsage: { used: (data.limit ?? 1) - (data.remaining ?? 0), limit: data.limit ?? 1 },
+        });
+      } catch {}
 
       // Store in memory + sessionStorage so polling survives page navigations.
       persistAlias({

@@ -20,7 +20,6 @@ targets:
       - path: App
         excludes:
           - "**/*.entitlements"
-    resources:
       - path: Resources/Assets.xcassets
     settings:
       base:

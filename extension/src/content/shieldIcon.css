@@ -18,7 +18,7 @@
   --sm-motion-fast: 120ms;
   --sm-motion-normal: 240ms;
   --sm-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --sm-shield-size: 20px;
+  --sm-shield-size: 24px;
 }
 
 .host {
@@ -32,8 +32,8 @@
 button.shield {
   all: unset;
   cursor: pointer;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -96,8 +96,8 @@ button.shield[data-sm-state="fade-out"] {
 svg.spinner {
   display: none;
   position: absolute;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
 }
 
 .tooltip {

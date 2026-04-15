@@ -48,8 +48,8 @@
   "commands": {
     "shieldmail-generate": {
       "suggested_key": {
-        "default": "Ctrl+Shift+E",
-        "mac": "Command+Shift+E"
+        "default": "Alt+Shift+M",
+        "mac": "Alt+Shift+M"
       },
       "description": "ShieldMail 임시 이메일 생성"
     }

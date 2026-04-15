@@ -256,7 +256,7 @@ export function showOtpToast(otp: string): void {
   document.body.appendChild(toast);
 
   // Auto-dismiss after 60 seconds.
-  const timer = setTimeout(() => toast.remove(), 60000);
+  const timer = setTimeout(() => toast.remove(), 20000);
 
   // Dismiss on page navigation (SPA pushState/replaceState + popstate).
   const dismiss = (): void => {
