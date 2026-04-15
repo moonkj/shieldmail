@@ -65,7 +65,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   autoCopyOtp: true,
   managedModeEnabled: false,
   apiBaseUrl: "https://api.shldmail.work",
-  detectionThreshold: 0.7,
+  detectionThreshold: 0.45,
 };
 
 /* ---------- Subscription / Usage ---------- */

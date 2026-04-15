@@ -424,16 +424,29 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
 
   observer.start();
 
-  // Focus tracking: update currentInput when user taps an email field directly
+  // Focus tracking: update currentInput when user taps an email-like field.
+  const emailHint = /email|이메일|メール|邮箱|e-mail|courriel|correo/i;
   document.addEventListener("focusin", (ev) => {
     const el = ev.target;
-    if (el instanceof HTMLInputElement) {
+    if (el instanceof HTMLInputElement && el.type !== "hidden" && !el.disabled) {
       const type = el.type.toLowerCase();
+      if (type === "password" || type === "number" || type === "date" || type === "checkbox" || type === "radio") return;
       const autocomplete = (el.getAttribute("autocomplete") ?? "").toLowerCase();
+      const hint = `${el.placeholder} ${el.name} ${el.id} ${el.getAttribute("aria-label") ?? ""}`;
+      // Also check nearby label text (floating label pattern).
+      let labelText = "";
+      const labelEl = el.labels?.[0] ?? el.closest("label") ?? el.parentElement?.querySelector("label");
+      if (labelEl) labelText = labelEl.textContent ?? "";
+      // Check previous sibling text (common in modal forms).
+      const prev = el.previousElementSibling;
+      if (prev) labelText += " " + (prev.textContent ?? "");
+      const allHints = `${hint} ${labelText}`;
+
       if (
         type === "email" ||
         el.inputMode === "email" ||
-        autocomplete.includes("email")
+        autocomplete.includes("email") ||
+        emailHint.test(allHints)
       ) {
         currentInput = el;
         iosInjector.show();
