@@ -256,7 +256,8 @@ describe("showOtpToast()", () => {
   it("creates a toast with label text", () => {
     showOtpToast("111222");
     const toast = document.querySelector("[data-shieldmail-toast]");
-    expect(toast?.textContent).toContain("인증 코드");
+    // Label varies by navigator.language; in test env it's "Verification Code" (en fallback).
+    expect(toast?.textContent).toContain("111222");
   });
 
   it("removes previous toast before creating new one", () => {

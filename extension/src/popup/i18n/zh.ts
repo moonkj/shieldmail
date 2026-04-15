@@ -1,0 +1,112 @@
+import type { Messages } from "./ko.js";
+
+export const zh: Messages = {
+  appTitle: "ShieldMail",
+  header: {
+    settings: "设置",
+    back: "返回",
+  },
+  main: {
+    sectionAddress: "临时地址",
+    sectionOtp: "OTP",
+    sectionVerify: "验证链接",
+    copy: "复制",
+    copied: "已复制 ✓",
+    emptyState: "在此页面上试试 Shield Mode",
+    generateNew: "生成新地址",
+    openManaged: "打开 Managed Mode",
+    openVerify: "打开验证链接",
+    verifyWarning:
+      "⚠ 此链接来自未知发件人。请确认安全后再打开。",
+    waiting: "正在等待邮件...",
+    ttlRemaining: (mmss: string) => `地址将在 ${mmss} 后过期`,
+    expired: "已过期",
+    lowConfidence: "低置信度",
+  },
+  onboarding: {
+    step1Title: "ShieldMail",
+    step1Tagline: "注册烦恼，自动化解决",
+    step1Body:
+      "消除注册烦恼。点击盾牌图标，临时地址即刻填入。",
+    step1Cta: "开始使用",
+    step2Title: "您打算如何使用？",
+    modeDev: "开发/QA 测试 — 快速迭代",
+    modeEveryday: "日常注册保护 — 拦截垃圾邮件",
+    next: "下一步 →",
+    step3Title: "即将完成",
+    step3Body:
+      "请允许 ShieldMail 检测页面上的邮箱字段。",
+    openSafariSettings: "打开 Safari 设置",
+    finish: "授予权限",
+  },
+  managed: {
+    title: "Managed Mode",
+    searchPlaceholder: "搜索网站或地址...",
+    tags: {
+      all: "全部",
+      work: "工作",
+      shopping: "购物",
+      qa: "QA",
+      newsletter: "新闻通讯",
+      addTag: "+ 添加标签",
+    },
+    empty:
+      "暂无已保存的地址。注册时在盾牌图标上点击「保存到 Managed Mode」即可在此显示。",
+    noMail: "无邮件",
+    lastMail: (when: string) => `最近邮件: ${when}`,
+    detailNote: "在 M2 中，仅保留最新一封邮件，有效期内有效。",
+    delete: "删除",
+  },
+  settings: {
+    title: "设置",
+    userMode: "使用模式",
+    developer: "开发/QA",
+    everyday: "日常使用",
+    autoCopy: "自动复制 OTP",
+    managedMode: "默认保存到 Managed Mode",
+    domainPool: "域名池信息",
+    apiBaseUrl: "API Base URL",
+    openSource: "开源仓库 (GitHub)",
+    version: "版本",
+    resetOnboarding: "重新查看引导",
+    subscription: "订阅状态",
+  },
+  errors: {
+    rate_limited: "请求过于频繁，请稍后再试。",
+    token_revoked: "会话已过期，请生成新地址。",
+    alias_expired: "此地址已过期。",
+    network_unavailable: "请检查网络连接。",
+    domain_blocked:
+      "此网站拒绝 ShieldMail 地址，请尝试其他方式。",
+    unknown: "发生未知错误。",
+    retry: "重试",
+    newAlias: "生成新地址",
+    fallback: "查看指南",
+  },
+  usage: {
+    used: (used: number, limit: number) => `已使用 ${used}/${limit}`,
+  },
+  limit: {
+    title: "今日免费额度已用完",
+    body: "每月仅需 $0.99，即可每天生成 20 个地址。",
+    upgrade: "升级 Pro · $0.99/月",
+    dismiss: "明天再来",
+  },
+  subscription: {
+    title: "订阅",
+    currentPlan: "当前方案",
+    freePlan: "免费",
+    benefitsTitle: "ShieldMail Pro",
+    benefit1: "每天 20 次邮箱生成（免费: 1 次）",
+    benefit2: "邮件优先处理",
+    benefit3: "优先体验未来高级功能",
+    subscribe: "订阅 Pro · $0.99/月",
+    restore: "恢复购买",
+    manage: "管理 Apple 订阅",
+    disclaimer: "订阅将通过 iTunes 账户扣费，并在到期前 24 小时自动续订。",
+  },
+  privacy: {
+    footer:
+      "邮件内容不会被存储。仅 OTP 和链接在内存中临时保留最多 10 分钟，之后自动删除。",
+  },
+};

@@ -1,0 +1,112 @@
+import type { Messages } from "./ko.js";
+
+export const ja: Messages = {
+  appTitle: "ShieldMail",
+  header: {
+    settings: "設定",
+    back: "戻る",
+  },
+  main: {
+    sectionAddress: "一時アドレス",
+    sectionOtp: "OTP",
+    sectionVerify: "認証リンク",
+    copy: "コピー",
+    copied: "コピー済み ✓",
+    emptyState: "このページでShield Modeを試してみましょう",
+    generateNew: "新しいアドレスを生成",
+    openManaged: "Managed Modeを開く",
+    openVerify: "認証リンクを開く",
+    verifyWarning:
+      "⚠ このリンクは不明な送信者からのものです。安全であることを確認してから開いてください。",
+    waiting: "メールを待っています...",
+    ttlRemaining: (mmss: string) => `アドレスの有効期限まで ${mmss}`,
+    expired: "期限切れ",
+    lowConfidence: "低信頼度",
+  },
+  onboarding: {
+    step1Title: "ShieldMail",
+    step1Tagline: "会員登録のストレスを自動化で解消",
+    step1Body:
+      "会員登録のストレスをなくします。シールドアイコンをタップするだけで、一時アドレスが即座に入力されます。",
+    step1Cta: "はじめる",
+    step2Title: "どのように使いますか？",
+    modeDev: "開発/QAテスト — 高速反復",
+    modeEveryday: "日常の会員登録保護 — スパム防止",
+    next: "次へ →",
+    step3Title: "もう少しです",
+    step3Body:
+      "ShieldMailがページ上のメールフィールドを検出できるように許可してください。",
+    openSafariSettings: "Safari設定を開く",
+    finish: "権限を許可",
+  },
+  managed: {
+    title: "Managed Mode",
+    searchPlaceholder: "サイトまたはアドレスを検索...",
+    tags: {
+      all: "すべて",
+      work: "仕事",
+      shopping: "ショッピング",
+      qa: "QA",
+      newsletter: "ニュースレター",
+      addTag: "+ タグを追加",
+    },
+    empty:
+      "保存されたアドレスはありません。会員登録時にシールドアイコンから「Managed Modeに保存」をタップすると、ここに表示されます。",
+    noMail: "メールなし",
+    lastMail: (when: string) => `最終メール: ${when}`,
+    detailNote: "M2では最新メール1件のみがTTL期間中保持されます。",
+    delete: "削除",
+  },
+  settings: {
+    title: "設定",
+    userMode: "使用モード",
+    developer: "開発/QA",
+    everyday: "日常利用",
+    autoCopy: "OTP自動コピー",
+    managedMode: "Managed Modeにデフォルト保存",
+    domainPool: "ドメインプール情報",
+    apiBaseUrl: "API Base URL",
+    openSource: "オープンソースリポジトリ (GitHub)",
+    version: "バージョン",
+    resetOnboarding: "オンボーディングを再表示",
+    subscription: "サブスクリプション",
+  },
+  errors: {
+    rate_limited: "リクエストが多すぎます。しばらくしてから再度お試しください。",
+    token_revoked: "セッションが期限切れです。新しいアドレスを生成してください。",
+    alias_expired: "このアドレスは期限切れです。",
+    network_unavailable: "ネットワーク接続を確認してください。",
+    domain_blocked:
+      "このサイトはShieldMailアドレスを拒否しています。別の方法をお試しください。",
+    unknown: "不明なエラーが発生しました。",
+    retry: "再試行",
+    newAlias: "新しいアドレスを生成",
+    fallback: "ガイドを見る",
+  },
+  usage: {
+    used: (used: number, limit: number) => `${used}/${limit} 使用済み`,
+  },
+  limit: {
+    title: "本日の無料枠を使い切りました",
+    body: "月額$0.99で1日20回まで生成できます。",
+    upgrade: "Proにアップグレード · 月額$0.99",
+    dismiss: "明日また利用する",
+  },
+  subscription: {
+    title: "サブスクリプション",
+    currentPlan: "現在のプラン",
+    freePlan: "無料",
+    benefitsTitle: "ShieldMail Pro",
+    benefit1: "1日20回のメール生成（無料: 1回）",
+    benefit2: "メール受信の優先処理",
+    benefit3: "今後のプレミアム機能を優先提供",
+    subscribe: "Proに登録 · 月額$0.99",
+    restore: "購入を復元",
+    manage: "Appleサブスクリプションを管理",
+    disclaimer: "サブスクリプションはiTunesアカウントに請求され、有効期限の24時間前に自動更新されます。",
+  },
+  privacy: {
+    footer:
+      "メール内容は保存されません。OTPとリンクのみ最大10分間メモリに一時保管され、自動削除されます。",
+  },
+};

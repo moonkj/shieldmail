@@ -198,13 +198,23 @@ export function showLimitToast(): void {
     "max-width:280px",
   ].join(";");
 
+  const limitLabels: Record<string, { title: string; body: string }> = {
+    ko: { title: "\u26A0 오늘의 무료 한도 초과", body: "팝업에서 Pro 업그레이드" },
+    ja: { title: "\u26A0 本日の無料枠を超過", body: "ポップアップから Pro にアップグレード" },
+    zh: { title: "\u26A0 今日免费额度已用完", body: "在弹窗中升级 Pro" },
+    fr: { title: "\u26A0 Limite gratuite du jour atteinte", body: "Passez à Pro depuis le popup" },
+    hi: { title: "\u26A0 आज की मुफ़्त सीमा समाप्त", body: "पॉपअप से Pro में अपग्रेड करें" },
+  };
+  const limitLangPrefix = (navigator.language ?? "en").toLowerCase().slice(0, 2);
+  const limitText = limitLabels[limitLangPrefix] ?? { title: "\u26A0 Daily free limit exceeded", body: "Upgrade to Pro from the popup" };
+
   const label = document.createElement("div");
   label.style.cssText = "font-size:13px;font-weight:600;margin-bottom:4px;color:#ff9500";
-  label.textContent = "\u26A0 \uC624\uB298\uC758 \uBB34\uB8CC \uD55C\uB3C4 \uCD08\uACFC";
+  label.textContent = limitText.title;
 
   const body = document.createElement("div");
   body.style.cssText = "font-size:11px;color:#ccc";
-  body.textContent = "\uD31D\uC5C5\uC5D0\uC11C Pro \uC5C5\uADF8\uB808\uC774\uB4DC";
+  body.textContent = limitText.body;
 
   toast.appendChild(label);
   toast.appendChild(body);
@@ -244,7 +254,15 @@ export function showOtpToast(otp: string): void {
 
   const label = document.createElement("div");
   label.style.cssText = "font-size:10px;color:#888;margin-bottom:2px";
-  label.textContent = "인증 코드";
+  const otpLabels: Record<string, string> = {
+    ko: "인증 코드",
+    ja: "認証コード",
+    zh: "验证码",
+    fr: "Code de vérification",
+    hi: "सत्यापन कोड",
+  };
+  const otpLangPrefix = (navigator.language ?? "en").toLowerCase().slice(0, 2);
+  label.textContent = otpLabels[otpLangPrefix] ?? "Verification Code";
 
   const code = document.createElement("div");
   code.style.cssText = "font-size:20px;font-weight:800;letter-spacing:3px;color:#0f0";

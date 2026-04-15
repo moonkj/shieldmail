@@ -1,0 +1,112 @@
+import type { Messages } from "./ko.js";
+
+export const hi: Messages = {
+  appTitle: "ShieldMail",
+  header: {
+    settings: "सेटिंग्स",
+    back: "वापस",
+  },
+  main: {
+    sectionAddress: "अस्थायी पता",
+    sectionOtp: "OTP",
+    sectionVerify: "सत्यापन लिंक",
+    copy: "कॉपी करें",
+    copied: "कॉपी हो गया ✓",
+    emptyState: "इस पेज पर Shield Mode आज़माएँ",
+    generateNew: "नया पता बनाएँ",
+    openManaged: "Managed Mode खोलें",
+    openVerify: "सत्यापन लिंक खोलें",
+    verifyWarning:
+      "⚠ यह लिंक एक अज्ञात प्रेषक से आया है। खोलने से पहले सुनिश्चित करें कि यह सुरक्षित है।",
+    waiting: "ईमेल की प्रतीक्षा हो रही है...",
+    ttlRemaining: (mmss: string) => `पता ${mmss} में समाप्त होगा`,
+    expired: "समाप्त",
+    lowConfidence: "कम विश्वसनीयता",
+  },
+  onboarding: {
+    step1Title: "ShieldMail",
+    step1Tagline: "साइन-अप का तनाव, ऑटोमेशन से ख़त्म",
+    step1Body:
+      "साइन-अप का तनाव मिटाएँ। शील्ड आइकन दबाएँ और अस्थायी पता तुरंत भर जाएगा।",
+    step1Cta: "शुरू करें",
+    step2Title: "आप इसे कैसे उपयोग करेंगे?",
+    modeDev: "डेव/QA टेस्टिंग — तेज़ दोहराव",
+    modeEveryday: "रोज़ाना साइन-अप सुरक्षा — स्पैम रोकें",
+    next: "अगला →",
+    step3Title: "लगभग तैयार",
+    step3Body:
+      "कृपया ShieldMail को पेज पर ईमेल फ़ील्ड पहचानने की अनुमति दें।",
+    openSafariSettings: "Safari सेटिंग्स खोलें",
+    finish: "अनुमति दें",
+  },
+  managed: {
+    title: "Managed Mode",
+    searchPlaceholder: "साइट या पता खोजें...",
+    tags: {
+      all: "सभी",
+      work: "कार्य",
+      shopping: "शॉपिंग",
+      qa: "QA",
+      newsletter: "न्यूज़लेटर",
+      addTag: "+ टैग जोड़ें",
+    },
+    empty:
+      "अभी कोई सहेजा हुआ पता नहीं है। साइन-अप करते समय शील्ड आइकन पर 'Managed Mode में सहेजें' दबाएँ, तो यहाँ दिखेगा।",
+    noMail: "कोई मेल नहीं",
+    lastMail: (when: string) => `अंतिम मेल: ${when}`,
+    detailNote: "M2 में केवल नवीनतम संदेश TTL अवधि तक रखा जाता है।",
+    delete: "हटाएँ",
+  },
+  settings: {
+    title: "सेटिंग्स",
+    userMode: "उपयोग मोड",
+    developer: "डेव / QA",
+    everyday: "रोज़ाना",
+    autoCopy: "OTP ऑटो-कॉपी",
+    managedMode: "डिफ़ॉल्ट रूप से Managed Mode में सहेजें",
+    domainPool: "डोमेन पूल जानकारी",
+    apiBaseUrl: "API Base URL",
+    openSource: "ओपन-सोर्स रिपॉज़िटरी (GitHub)",
+    version: "संस्करण",
+    resetOnboarding: "ऑनबोर्डिंग दोबारा देखें",
+    subscription: "सदस्यता",
+  },
+  errors: {
+    rate_limited: "बहुत अधिक अनुरोध। कृपया कुछ देर बाद पुनः प्रयास करें।",
+    token_revoked: "सत्र समाप्त हो गया। कृपया नया पता बनाएँ।",
+    alias_expired: "यह पता समाप्त हो चुका है।",
+    network_unavailable: "कृपया अपना नेटवर्क कनेक्शन जाँचें।",
+    domain_blocked:
+      "यह साइट ShieldMail पते को अस्वीकार करती है। कोई अन्य तरीका आज़माएँ।",
+    unknown: "एक अज्ञात त्रुटि हुई।",
+    retry: "पुनः प्रयास",
+    newAlias: "नया पता बनाएँ",
+    fallback: "गाइड देखें",
+  },
+  usage: {
+    used: (used: number, limit: number) => `${used}/${limit} उपयोग किया`,
+  },
+  limit: {
+    title: "आज की मुफ़्त सीमा समाप्त हो गई",
+    body: "मात्र $0.99/माह में प्रतिदिन 20 पते बनाएँ।",
+    upgrade: "Pro में अपग्रेड करें · $0.99/माह",
+    dismiss: "कल फिर प्रयास करें",
+  },
+  subscription: {
+    title: "सदस्यता",
+    currentPlan: "वर्तमान प्लान",
+    freePlan: "मुफ़्त",
+    benefitsTitle: "ShieldMail Pro",
+    benefit1: "प्रतिदिन 20 ईमेल (मुफ़्त: 1)",
+    benefit2: "ईमेल प्राथमिकता प्रोसेसिंग",
+    benefit3: "भविष्य की प्रीमियम सुविधाएँ पहले मिलें",
+    subscribe: "Pro की सदस्यता लें · $0.99/माह",
+    restore: "खरीदारी पुनर्स्थापित करें",
+    manage: "Apple सदस्यता प्रबंधित करें",
+    disclaimer: "सदस्यता आपके iTunes खाते से ली जाएगी और समाप्ति से 24 घंटे पहले स्वचालित रूप से नवीनीकृत होगी।",
+  },
+  privacy: {
+    footer:
+      "ईमेल सामग्री कभी संग्रहीत नहीं की जाती। केवल OTP और लिंक अधिकतम 10 मिनट तक मेमोरी में रखे जाते हैं, फिर स्वचालित रूप से हटा दिए जाते हैं।",
+  },
+};

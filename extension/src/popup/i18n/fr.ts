@@ -1,0 +1,112 @@
+import type { Messages } from "./ko.js";
+
+export const fr: Messages = {
+  appTitle: "ShieldMail",
+  header: {
+    settings: "Paramètres",
+    back: "Retour",
+  },
+  main: {
+    sectionAddress: "Adresse temporaire",
+    sectionOtp: "OTP",
+    sectionVerify: "Lien de vérification",
+    copy: "Copier",
+    copied: "Copié ✓",
+    emptyState: "Essayez le Shield Mode sur cette page",
+    generateNew: "Générer une nouvelle adresse",
+    openManaged: "Ouvrir le Managed Mode",
+    openVerify: "Ouvrir le lien de vérification",
+    verifyWarning:
+      "⚠ Ce lien provient d'un expéditeur inconnu. Vérifiez qu'il est sûr avant de l'ouvrir.",
+    waiting: "En attente d'un e-mail...",
+    ttlRemaining: (mmss: string) => `L'adresse expire dans ${mmss}`,
+    expired: "Expiré",
+    lowConfidence: "Faible fiabilité",
+  },
+  onboarding: {
+    step1Title: "ShieldMail",
+    step1Tagline: "Le stress de l'inscription, automatisé",
+    step1Body:
+      "Fini le stress de l'inscription. Appuyez sur le bouclier pour remplir instantanément une adresse temporaire.",
+    step1Cta: "Commencer",
+    step2Title: "Comment allez-vous l'utiliser ?",
+    modeDev: "Tests dev/QA — itération rapide",
+    modeEveryday: "Protection au quotidien — bloquer le spam",
+    next: "Suivant →",
+    step3Title: "Presque terminé",
+    step3Body:
+      "Veuillez autoriser ShieldMail à détecter les champs e-mail sur les pages.",
+    openSafariSettings: "Ouvrir les réglages Safari",
+    finish: "Accorder la permission",
+  },
+  managed: {
+    title: "Managed Mode",
+    searchPlaceholder: "Rechercher un site ou une adresse...",
+    tags: {
+      all: "Tout",
+      work: "Travail",
+      shopping: "Shopping",
+      qa: "QA",
+      newsletter: "Newsletter",
+      addTag: "+ Ajouter un tag",
+    },
+    empty:
+      "Aucune adresse enregistrée. Lors d'une inscription, appuyez sur « Enregistrer dans le Managed Mode » sur l'icône du bouclier.",
+    noMail: "Aucun e-mail",
+    lastMail: (when: string) => `Dernier e-mail : ${when}`,
+    detailNote: "En M2, seul le dernier message est conservé pendant la durée du TTL.",
+    delete: "Supprimer",
+  },
+  settings: {
+    title: "Paramètres",
+    userMode: "Mode d'utilisation",
+    developer: "Dev / QA",
+    everyday: "Quotidien",
+    autoCopy: "Copie automatique de l'OTP",
+    managedMode: "Enregistrer dans le Managed Mode par défaut",
+    domainPool: "Infos sur le pool de domaines",
+    apiBaseUrl: "URL de base de l'API",
+    openSource: "Dépôt open source (GitHub)",
+    version: "Version",
+    resetOnboarding: "Revoir l'introduction",
+    subscription: "Abonnement",
+  },
+  errors: {
+    rate_limited: "Trop de requêtes. Veuillez réessayer dans un instant.",
+    token_revoked: "Session expirée. Veuillez générer une nouvelle adresse.",
+    alias_expired: "Cette adresse a expiré.",
+    network_unavailable: "Veuillez vérifier votre connexion réseau.",
+    domain_blocked:
+      "Ce site refuse les adresses ShieldMail. Essayez une autre méthode.",
+    unknown: "Une erreur inconnue s'est produite.",
+    retry: "Réessayer",
+    newAlias: "Générer une nouvelle adresse",
+    fallback: "Voir le guide",
+  },
+  usage: {
+    used: (used: number, limit: number) => `${used}/${limit} utilisé(s)`,
+  },
+  limit: {
+    title: "Vous avez épuisé vos crédits gratuits du jour",
+    body: "Obtenez 20 adresses par jour pour seulement $0.99/mois.",
+    upgrade: "Passer à Pro · $0.99/mois",
+    dismiss: "Réessayer demain",
+  },
+  subscription: {
+    title: "Abonnement",
+    currentPlan: "Forfait actuel",
+    freePlan: "Gratuit",
+    benefitsTitle: "ShieldMail Pro",
+    benefit1: "20 adresses par jour (gratuit : 1)",
+    benefit2: "Traitement prioritaire des e-mails",
+    benefit3: "Accès anticipé aux fonctionnalités premium",
+    subscribe: "S'abonner à Pro · $0.99/mois",
+    restore: "Restaurer l'achat",
+    manage: "Gérer l'abonnement Apple",
+    disclaimer: "L'abonnement est facturé sur votre compte iTunes et se renouvelle automatiquement 24 heures avant l'expiration.",
+  },
+  privacy: {
+    footer:
+      "Le contenu des e-mails n'est jamais stocké. Seuls les OTP et les liens sont conservés en mémoire pendant 10 minutes maximum, puis supprimés automatiquement.",
+  },
+};

@@ -162,13 +162,23 @@ function showLimitToast(): void {
     "max-width:280px",
   ].join(";");
 
+  const limitLabels: Record<string, { title: string; body: string }> = {
+    ko: { title: "\u26A0 오늘의 무료 한도 초과", body: "팝업에서 Pro 업그레이드" },
+    ja: { title: "\u26A0 本日の無料枠を超過", body: "ポップアップから Pro にアップグレード" },
+    zh: { title: "\u26A0 今日免费额度已用完", body: "在弹窗中升级 Pro" },
+    fr: { title: "\u26A0 Limite gratuite du jour atteinte", body: "Passez à Pro depuis le popup" },
+    hi: { title: "\u26A0 आज की मुफ़्त सीमा समाप्त", body: "पॉपअप से Pro में अपग्रेड करें" },
+  };
+  const limitLangPrefix = (navigator.language ?? "en").toLowerCase().slice(0, 2);
+  const limitText = limitLabels[limitLangPrefix] ?? { title: "\u26A0 Daily free limit exceeded", body: "Upgrade to Pro from the popup" };
+
   const label = document.createElement("div");
   label.style.cssText = "font-size:13px;font-weight:600;margin-bottom:4px;color:#ff9500";
-  label.textContent = "\u26A0 \uC624\uB298\uC758 \uBB34\uB8CC \uD55C\uB3C4 \uCD08\uACFC";
+  label.textContent = limitText.title;
 
   const body = document.createElement("div");
   body.style.cssText = "font-size:11px;color:#ccc";
-  body.textContent = "\uD31D\uC5C5\uC5D0\uC11C Pro \uC5C5\uADF8\uB808\uC774\uB4DC";
+  body.textContent = limitText.body;
 
   toast.appendChild(label);
   toast.appendChild(body);
@@ -338,7 +348,15 @@ export class IOSFloatingButtonInjector {
     const btn = document.createElement("button");
     btn.className = "shield-btn";
     btn.setAttribute("type", "button");
-    btn.setAttribute("aria-label", "ShieldMail 임시 이메일 생성");
+    const ariaLabels: Record<string, string> = {
+      ko: "ShieldMail 임시 이메일 생성",
+      ja: "ShieldMail 一時メール生成",
+      zh: "ShieldMail 生成临时邮箱",
+      fr: "ShieldMail Générer un e-mail temporaire",
+      hi: "ShieldMail अस्थायी ईमेल बनाएँ",
+    };
+    const ariaLangPrefix = (navigator.language ?? "en").toLowerCase().slice(0, 2);
+    btn.setAttribute("aria-label", ariaLabels[ariaLangPrefix] ?? "ShieldMail Generate temporary email");
     btn.setAttribute("aria-live", "polite");
     btn.setAttribute("data-state", "default");
     btn.innerHTML = this.renderSvg();
@@ -440,17 +458,47 @@ export class IOSFloatingButtonInjector {
     this.button.setAttribute("data-state", s);
     this.button.setAttribute("aria-busy", s === "generating" ? "true" : "false");
 
-    const label: Record<IconState, string> = {
-      default:    "ShieldMail 임시 이메일 생성",
-      active:     "ShieldMail 임시 이메일 생성",
-      generating: "ShieldMail 주소 생성 중",
-      done:       "ShieldMail 주소 입력 완료",
-      polling:    "ShieldMail 인증 코드 수신 대기 중",
-      "otp-done": "ShieldMail 인증 코드 입력 완료",
-      error:      "ShieldMail 오류. 다시 시도하려면 탭하세요",
-      hidden:     "",
+    const ariaMap: Record<string, Record<IconState, string>> = {
+      ko: {
+        default: "ShieldMail 임시 이메일 생성", active: "ShieldMail 임시 이메일 생성",
+        generating: "ShieldMail 주소 생성 중", done: "ShieldMail 주소 입력 완료",
+        polling: "ShieldMail 인증 코드 수신 대기 중", "otp-done": "ShieldMail 인증 코드 입력 완료",
+        error: "ShieldMail 오류. 다시 시도하려면 탭하세요", hidden: "",
+      },
+      ja: {
+        default: "ShieldMail 一時メール生成", active: "ShieldMail 一時メール生成",
+        generating: "ShieldMail アドレス生成中", done: "ShieldMail アドレス入力完了",
+        polling: "ShieldMail 認証コード受信待ち", "otp-done": "ShieldMail 認証コード入力完了",
+        error: "ShieldMail エラー。タップして再試行", hidden: "",
+      },
+      zh: {
+        default: "ShieldMail 生成临时邮箱", active: "ShieldMail 生成临时邮箱",
+        generating: "ShieldMail 正在生成地址", done: "ShieldMail 地址已填入",
+        polling: "ShieldMail 等待验证码", "otp-done": "ShieldMail 验证码已填入",
+        error: "ShieldMail 出错，点击重试", hidden: "",
+      },
+      fr: {
+        default: "ShieldMail Générer un e-mail temporaire", active: "ShieldMail Générer un e-mail temporaire",
+        generating: "ShieldMail Génération en cours", done: "ShieldMail Adresse remplie",
+        polling: "ShieldMail En attente du code", "otp-done": "ShieldMail Code rempli",
+        error: "ShieldMail Erreur. Appuyez pour réessayer", hidden: "",
+      },
+      hi: {
+        default: "ShieldMail अस्थायी ईमेल बनाएँ", active: "ShieldMail अस्थायी ईमेल बनाएँ",
+        generating: "ShieldMail पता बना रहा है", done: "ShieldMail पता भर दिया गया",
+        polling: "ShieldMail सत्यापन कोड की प्रतीक्षा", "otp-done": "ShieldMail सत्यापन कोड भर दिया",
+        error: "ShieldMail त्रुटि। पुनः प्रयास के लिए टैप करें", hidden: "",
+      },
     };
-    this.button.setAttribute("aria-label", label[s]);
+    const enAria: Record<IconState, string> = {
+      default: "ShieldMail Generate temporary email", active: "ShieldMail Generate temporary email",
+      generating: "ShieldMail Generating address", done: "ShieldMail Address filled",
+      polling: "ShieldMail Waiting for verification code", "otp-done": "ShieldMail Verification code filled",
+      error: "ShieldMail Error. Tap to retry", hidden: "",
+    };
+    const statePrefix = (navigator.language ?? "en").toLowerCase().slice(0, 2);
+    const stateLabels = ariaMap[statePrefix] ?? enAria;
+    this.button.setAttribute("aria-label", stateLabels[s]);
   }
 
   private setButtonState(s: IconState): void {
