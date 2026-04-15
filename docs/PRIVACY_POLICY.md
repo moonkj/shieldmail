@@ -101,7 +101,7 @@ You can at any time:
 - **Delete a specific alias**: Tap the alias in the app → Delete
 - **Delete all aliases**: App Settings → Delete All Data
 - **Disable the extension**: Safari Settings → Extensions → ShieldMail → toggle off
-- **Request data deletion**: Email us at privacy@shld.me — we will confirm within 30 days
+- **Request data deletion**: Email us at imurmkj@naver.com — we will confirm within 30 days
 
 Because we do not store personal information linked to an identity, we cannot provide a "data export" — there is nothing to export beyond the alias list visible in the app itself.
 
@@ -121,6 +121,6 @@ We will update this page when our practices change. The "Last updated" date at t
 
 ## 9. Contact
 
-**Email**: privacy@shld.me  
+**Email**: imurmkj@naver.com  
 **GitHub**: https://github.com/moonkj/shieldmail  
 **Mailing address**: (to be updated before App Store submission)

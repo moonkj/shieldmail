@@ -27,7 +27,7 @@
 
 ## 문의
 
-- **이메일**: support@shldmail.work
+- **이메일**: imurmkj@naver.com
 - **GitHub Issues**: https://github.com/moonkj/shieldmail/issues
 
 ---
