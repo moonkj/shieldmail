@@ -40,10 +40,12 @@ const FREE_FALLBACK: SubscriptionState = {
 async function readCache(): Promise<SubscriptionState | null> {
   try {
     if (typeof chrome === "undefined" || !chrome.storage?.local) return null;
-    const result = (await chrome.storage.local.get(CACHE_KEY)) as {
-      [CACHE_KEY]?: SubscriptionCache;
-    };
-    const cached = result[CACHE_KEY];
+    // 1s timeout — iOS Safari content scripts can hang on chrome.storage.
+    const result = await Promise.race([
+      chrome.storage.local.get(CACHE_KEY) as Promise<Record<string, unknown>>,
+      new Promise<Record<string, unknown>>((r) => setTimeout(() => r({}), 1000)),
+    ]);
+    const cached = result[CACHE_KEY] as SubscriptionCache | undefined;
     if (!cached || !cached.cachedAt) return null;
     if (Date.now() - cached.cachedAt > CACHE_TTL_MS) return null;
     return { tier: cached.tier, jws: cached.jws, expiresDate: cached.expiresDate };

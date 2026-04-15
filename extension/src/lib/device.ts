@@ -4,18 +4,36 @@
  * Used to correlate subscription / usage state per device.
  */
 
+/** In-memory fallback so content script never blocks on chrome.storage. */
+let cachedDeviceId: string | null = null;
+
 export async function getOrCreateDeviceId(): Promise<string> {
-  if (typeof chrome === "undefined" || !chrome.storage?.local) {
-    return crypto.randomUUID();
-  }
+  if (cachedDeviceId) return cachedDeviceId;
 
-  const result = (await chrome.storage.local.get("deviceId")) as {
-    deviceId?: string;
-  };
-
-  if (result.deviceId) return result.deviceId;
+  // Try chrome.storage with a 1s timeout — iOS Safari content scripts
+  // sometimes hang on chrome.storage.local calls.
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const result = await Promise.race([
+        chrome.storage.local.get("deviceId") as Promise<{ deviceId?: string }>,
+        new Promise<{ deviceId?: string }>((r) => setTimeout(() => r({}), 1000)),
+      ]);
+      if (result.deviceId) {
+        cachedDeviceId = result.deviceId;
+        return cachedDeviceId;
+      }
+    }
+  } catch {}
 
   const id = crypto.randomUUID();
-  await chrome.storage.local.set({ deviceId: id });
+  cachedDeviceId = id;
+
+  // Best-effort persist.
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      void chrome.storage.local.set({ deviceId: id });
+    }
+  } catch {}
+
   return id;
 }

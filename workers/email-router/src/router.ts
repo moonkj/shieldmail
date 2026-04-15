@@ -76,6 +76,8 @@ export function buildRouter(): Hono<RouterCtx> {
       label?: unknown;
       deviceId?: unknown;
       subscriptionJWS?: unknown;
+      adminSecret?: unknown;
+      adminTier?: unknown;
     } = {};
     try {
       body = (await c.req.json()) as typeof body;
@@ -89,14 +91,11 @@ export function buildRouter(): Hono<RouterCtx> {
         ? body.deviceId
         : undefined;
     let tier: "free" | "pro" = "free";
-    // Admin override: check KV for admin-set tier, then ADMIN_IDS env.
-    const adminIds = (env.ADMIN_IDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
-    const isAdmin = adminIds.includes(clientIp) || (deviceId != null && adminIds.includes(deviceId));
-    if (isAdmin) {
-      // Check if admin has explicitly set a tier (for testing free vs pro).
-      const kvTier = await env.ALIAS_KV.get(`admin-tier:${clientIp}`)
-        ?? (deviceId ? await env.ALIAS_KV.get(`admin-tier:${deviceId}`) : null);
-      tier = kvTier === "free" ? "free" : "pro"; // default pro for admins
+    // Admin override: if request includes valid adminSecret, use adminTier directly.
+    const adminSecret = typeof body.adminSecret === "string" ? body.adminSecret : "";
+    const adminTierReq = typeof body.adminTier === "string" ? body.adminTier : "";
+    if (adminSecret.length > 0 && adminSecret === (env.ADMIN_SECRET ?? "") && (adminTierReq === "pro" || adminTierReq === "free")) {
+      tier = adminTierReq;
     } else if (typeof body.subscriptionJWS === "string" && body.subscriptionJWS.length > 0) {
       const jwsResult = await verifyAppleJWS(body.subscriptionJWS);
       if (jwsResult.valid && jwsResult.productId === "me.shld.shieldmail.pro.monthly") {
@@ -193,6 +192,19 @@ export function buildRouter(): Hono<RouterCtx> {
     }
 
     const address = fullAddress(aliasId, domain);
+    // Track stats (fire-and-forget, non-blocking).
+    const statsNow = new Date();
+    const weekKey = `stats:${tier}:week:${isoWeek(statsNow)}`;
+    const monthKey = `stats:${tier}:month:${statsNow.toISOString().slice(0, 7)}`;
+    const totalKey = `stats:${tier}:total`;
+    const statsWork = Promise.all([
+      incrementKv(env, weekKey, 604800),
+      incrementKv(env, monthKey, 2678400),
+      incrementKv(env, totalKey),
+      env.ALIAS_KV.put(`user:${tier}:${identifier}`, "1", { expirationTtl: 2678400 }),
+    ]);
+    try { c.executionCtx?.waitUntil(statsWork); } catch { void statsWork; }
+
     return c.json({
       aliasId,
       address,
@@ -328,35 +340,66 @@ export function buildRouter(): Hono<RouterCtx> {
   });
 
   // ──────────────────────────────────────────
-  // GET /admin/check?deviceId=xxx
-  // Returns { admin: true/false } — used by extension settings to show admin toggle.
+  // POST /admin/auth  { secret }
+  // Verify admin secret → returns { admin: true/false }
   // ──────────────────────────────────────────
-  app.get("/admin/check", (c) => {
+  app.post("/admin/auth", async (c) => {
     const env = c.env;
-    const clientIp = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
-    const deviceId = c.req.query("deviceId") ?? "";
-    const adminIds = (env.ADMIN_IDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
-    const isAdmin = adminIds.includes(clientIp) || (deviceId.length > 0 && adminIds.includes(deviceId));
-    return c.json({ admin: isAdmin });
+    let body: { secret?: string } = {};
+    try { body = await c.req.json(); } catch {}
+    const valid = typeof body.secret === "string"
+      && body.secret.length > 0
+      && body.secret === (env.ADMIN_SECRET ?? "");
+    return c.json({ admin: valid });
   });
 
   // ──────────────────────────────────────────
-  // POST /admin/set-tier  { deviceId, tier: "free"|"pro" }
-  // Admin-only: override tier for testing. Stores in KV.
+  // POST /admin/set-tier  { secret, identifier, tier }
+  // Admin-only: override tier for testing. Stores in KV (24h).
   // ──────────────────────────────────────────
   app.post("/admin/set-tier", async (c) => {
     const env = c.env;
     const clientIp = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for") ?? "unknown";
-    let body: { deviceId?: string; tier?: string } = {};
+    let body: { secret?: string; identifier?: string; tier?: string } = {};
     try { body = await c.req.json(); } catch {}
-    const deviceId = typeof body.deviceId === "string" ? body.deviceId : "";
-    const adminIds = (env.ADMIN_IDS ?? "").split(",").map((s: string) => s.trim()).filter(Boolean);
-    const isAdmin = adminIds.includes(clientIp) || (deviceId.length > 0 && adminIds.includes(deviceId));
-    if (!isAdmin) return c.json({ error: "not_admin" }, 403);
+    if (typeof body.secret !== "string" || body.secret !== (env.ADMIN_SECRET ?? "")) {
+      return c.json({ error: "not_admin" }, 403);
+    }
+    const id = typeof body.identifier === "string" && body.identifier.length > 0
+      ? body.identifier : clientIp;
     const newTier = body.tier === "pro" ? "pro" : "free";
+    await env.ALIAS_KV.put(`admin-tier:${id}`, newTier, { expirationTtl: 86400 });
+    // Also set by IP for content script requests (no deviceId).
     await env.ALIAS_KV.put(`admin-tier:${clientIp}`, newTier, { expirationTtl: 86400 });
-    if (deviceId) await env.ALIAS_KV.put(`admin-tier:${deviceId}`, newTier, { expirationTtl: 86400 });
     return c.json({ ok: true, tier: newTier });
+  });
+
+  // ──────────────────────────────────────────
+  // GET /admin/stats?secret=xxx
+  // Returns usage statistics for admin dashboard.
+  // ──────────────────────────────────────────
+  app.get("/admin/stats", async (c) => {
+    const env = c.env;
+    const secret = c.req.query("secret") ?? "";
+    if (!secret || secret !== (env.ADMIN_SECRET ?? "")) {
+      return c.json({ error: "not_admin" }, 403);
+    }
+    const now = new Date();
+    const weekKey = isoWeek(now);
+    const monthKey = now.toISOString().slice(0, 7);
+
+    const [freeWeek, freeTotal, proMonth] = await Promise.all([
+      env.ALIAS_KV.get(`stats:free:week:${weekKey}`),
+      env.ALIAS_KV.get("stats:free:total"),
+      env.ALIAS_KV.get(`stats:pro:month:${monthKey}`),
+    ]);
+
+    return c.json({
+      freeThisWeek: Number(freeWeek ?? "0"),
+      freeTotal: Number(freeTotal ?? "0"),
+      proThisMonth: Number(proMonth ?? "0"),
+      period: { week: weekKey, month: monthKey },
+    });
   });
 
   // Health.
@@ -426,4 +469,22 @@ async function checkRateLimit(
   return (await resp.json()) as
     | { allowed: true; remaining: number }
     | { allowed: false; retryAfterMs: number };
+}
+
+// ─────────────────────────────────────────────
+// Stats helpers
+// ─────────────────────────────────────────────
+function isoWeek(d: Date): string {
+  const jan1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const days = Math.floor((d.getTime() - jan1.getTime()) / 86400000);
+  const week = Math.ceil((days + jan1.getUTCDay() + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+async function incrementKv(env: Env, key: string, ttl?: number): Promise<void> {
+  try {
+    const current = Number(await env.ALIAS_KV.get(key) ?? "0");
+    const opts: KVNamespacePutOptions = ttl ? { expirationTtl: ttl } : {};
+    await env.ALIAS_KV.put(key, String(current + 1), opts);
+  } catch {}
 }

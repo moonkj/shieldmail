@@ -22,6 +22,7 @@ export interface Env {
   HMAC_KEY: string;             // wrangler secret put HMAC_KEY
   SENTRY_DSN?: string;
   ADMIN_IDS?: string;           // comma-separated admin IPs/deviceIds → always pro
+  ADMIN_SECRET?: string;        // admin password for testing tier toggle
 }
 
 /** Stored in ALIAS_KV under `alias:<id>`. */

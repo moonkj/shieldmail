@@ -483,6 +483,28 @@ export class IOSFloatingButtonInjector {
       };
       if (sub.jws) body.subscriptionJWS = sub.jws;
 
+      // Admin override: try sessionStorage first (reliable on iOS), then chrome.storage.
+      try {
+        const raw = sessionStorage.getItem("__sm_admin__");
+        if (raw) {
+          const admin = JSON.parse(raw) as { secret?: string; tier?: string };
+          if (typeof admin.secret === "string" && admin.secret.length > 0) body.adminSecret = admin.secret;
+          if (admin.tier === "pro" || admin.tier === "free") body.adminTier = admin.tier;
+        }
+      } catch {}
+      if (!body.adminSecret) {
+        try {
+          if (typeof chrome !== "undefined" && chrome.storage?.local) {
+            const adminData = await Promise.race([
+              chrome.storage.local.get(["adminSecret", "adminTier"]) as Promise<Record<string, unknown>>,
+              new Promise<Record<string, unknown>>((r) => setTimeout(() => r({}), 1000)),
+            ]);
+            if (typeof adminData.adminSecret === "string" && adminData.adminSecret.length > 0) body.adminSecret = adminData.adminSecret;
+            if (adminData.adminTier === "pro" || adminData.adminTier === "free") body.adminTier = adminData.adminTier as string;
+          }
+        } catch {}
+      }
+
       const resp = await fetch(`${apiBase}/alias/generate`, {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -492,7 +514,7 @@ export class IOSFloatingButtonInjector {
       // Handle 403 daily_limit_exceeded
       if (resp.status === 403) {
         try {
-          const errData = (await resp.json()) as { code?: string };
+          const errData = (await resp.json()) as { code?: string; error?: string };
           if (errData.error === "daily_limit_exceeded") {
             showLimitToast();
             this.setState("error");

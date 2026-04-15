@@ -214,7 +214,7 @@ export function MainScreen({ navigate }: MainScreenProps) {
       // Handle 403 daily_limit_exceeded
       if (resp.status === 403) {
         try {
-          const errData = (await resp.json()) as { code?: string; remaining?: number; limit?: number; tier?: string };
+          const errData = (await resp.json()) as { code?: string; error?: string; remaining?: number; limit?: number; tier?: string };
           if (errData.error === "daily_limit_exceeded") {
             if (typeof errData.remaining === "number") setUsageUsed(errData.limit ?? usageLimit);
             if (typeof errData.limit === "number") setUsageLimit(errData.limit);
