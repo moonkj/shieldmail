@@ -32,6 +32,7 @@ targets:
     dependencies:
       - target: ShieldMailExtension
         embed: true
+      - sdk: StoreKit.framework
 
   ShieldMailExtension:
     type: app-extension
