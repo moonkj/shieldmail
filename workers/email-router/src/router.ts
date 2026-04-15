@@ -97,9 +97,28 @@ export function buildRouter(): Hono<RouterCtx> {
     if (adminSecret.length > 0 && adminSecret === (env.ADMIN_SECRET ?? "") && (adminTierReq === "pro" || adminTierReq === "free")) {
       tier = adminTierReq;
     } else if (typeof body.subscriptionJWS === "string" && body.subscriptionJWS.length > 0) {
+      // Try JWS verification first, then base64 JSON fallback (Xcode 26 sends jsonRepresentation).
       const jwsResult = await verifyAppleJWS(body.subscriptionJWS);
       if (jwsResult.valid && jwsResult.productId === "me.shld.shieldmail.pro.monthly") {
         tier = "pro";
+      } else {
+        // Fallback: decode base64 JSON transaction (from transaction.jsonRepresentation)
+        try {
+          const json = JSON.parse(atob(body.subscriptionJWS)) as {
+            productID?: string;
+            expirationDate?: number; // ms since 2001-01-01
+            revocationDate?: number | null;
+          };
+          const APPLE_EPOCH_MS = 978307200000; // 2001-01-01 in unix ms
+          const expiresUnix = json.expirationDate ? json.expirationDate + APPLE_EPOCH_MS : 0;
+          if (
+            json.productID === "me.shld.shieldmail.pro.monthly" &&
+            !json.revocationDate &&
+            expiresUnix > Date.now()
+          ) {
+            tier = "pro";
+          }
+        } catch { /* malformed — stay free */ }
       }
     }
     // Free tier: always use IP to prevent deviceId spoofing.

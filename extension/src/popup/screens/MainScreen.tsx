@@ -57,6 +57,26 @@ export function MainScreen({ navigate }: MainScreenProps) {
     void getActiveTabOrigin().then(setOrigin);
   }, []);
 
+  // Read admin tier on mount — if admin set Pro, reflect it immediately.
+  useEffect(() => {
+    try {
+      if (typeof chrome !== "undefined" && chrome.storage?.local) {
+        void chrome.storage.local.get(["adminMode", "adminTier"]).then((r: Record<string, unknown>) => {
+          if ((r as { adminMode?: boolean }).adminMode) {
+            const t = (r as { adminTier?: string }).adminTier;
+            if (t === "pro") {
+              setUsageTier("pro");
+              setUsageLimit(20);
+            } else if (t === "free") {
+              setUsageTier("free");
+              setUsageLimit(1);
+            }
+          }
+        });
+      }
+    } catch {}
+  }, []);
+
   // On mount: ask the content script for the alias it generated via the shield
   // button. Uses chrome.tabs.sendMessage → content script's onMessage handler.
   // This bypasses both chrome.storage and background SW entirely.

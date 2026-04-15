@@ -174,7 +174,7 @@ final class SubscriptionManager: ObservableObject {
 
         tier = "pro"
         persistToAppGroup(
-            jws: String(transaction.id),
+            jws: transaction.jsonRepresentation.base64EncodedString(),
             productId: transaction.productID,
             expiresDate: transaction.expirationDate
         )
@@ -190,7 +190,7 @@ final class SubscriptionManager: ObservableObject {
             } else {
                 tier = "pro"
                 persistToAppGroup(
-                    jws: String(transaction.id),
+                    jws: transaction.jsonRepresentation.base64EncodedString(),
                     productId: transaction.productID,
                     expiresDate: transaction.expirationDate
                 )
