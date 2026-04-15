@@ -100,6 +100,17 @@ struct ContentView: View {
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 24)
+
+                    Divider().padding(.horizontal, 24)
+
+                    // Legal
+                    VStack(spacing: 12) {
+                        LegalLink(title: "개인정보 처리방침", url: "https://moonkj.github.io/shieldmail/privacy.html")
+                        LegalLink(title: "이용약관", url: "https://moonkj.github.io/shieldmail/terms.html")
+                        LegalLink(title: "지원 및 문의", url: "https://moonkj.github.io/shieldmail/support.html")
+                        LegalLink(title: "오픈소스 라이선스", url: "https://github.com/moonkj/shieldmail")
+                    }
+                    .padding(.horizontal, 24)
                     .padding(.bottom, 40)
                 }
             }
@@ -257,6 +268,31 @@ private struct SetupStep: View {
             }
         }
         .padding(.horizontal, 24)
+    }
+}
+
+// MARK: - Legal Link
+
+private struct LegalLink: View {
+    let title: String
+    let url: String
+
+    var body: some View {
+        Button {
+            if let url = URL(string: url) {
+                UIApplication.shared.open(url)
+            }
+        } label: {
+            HStack {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.caption2)
+                    .foregroundStyle(Color(.tertiaryLabel))
+            }
+        }
     }
 }
 
