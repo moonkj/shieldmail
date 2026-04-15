@@ -40,13 +40,13 @@ describe("MainScreen", () => {
     expect(container.textContent).toContain(t.main.emptyState);
   });
 
-  it("shows generate button in empty state", () => {
+  it("does not show generate button (removed — alias via shield button only)", () => {
     const navigate = vi.fn();
     const { container } = renderComponent(MainScreen, { navigate });
     const genBtn = Array.from(container.querySelectorAll("button")).find((b) =>
       b.textContent?.includes(t.main.generateNew),
     );
-    expect(genBtn).not.toBeUndefined();
+    expect(genBtn).toBeUndefined();
   });
 
   it("renders the privacy footer", () => {

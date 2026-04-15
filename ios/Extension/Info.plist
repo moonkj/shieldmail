@@ -28,12 +28,6 @@
     <key>NSExtensionPrincipalClass</key>
     <string>$(PRODUCT_MODULE_NAME).SafariExtensionHandler</string>
   </dict>
-  <!-- Privacy manifest: no tracking, no data collection -->
-  <key>NSPrivacyAccessedAPITypes</key>
-  <array/>
-  <key>NSPrivacyCollectedDataTypes</key>
-  <array/>
-  <key>NSPrivacyTracking</key>
-  <false/>
+  <!-- Privacy manifest is in PrivacyInfo.xcprivacy (single source of truth) -->
 </dict>
 </plist>

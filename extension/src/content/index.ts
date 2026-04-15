@@ -429,8 +429,9 @@ function mainIOS(getMode: () => "managed" | "ephemeral"): void {
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if ((msg as { type?: string })?.type === "SET_ADMIN") {
       try {
-        const data = msg as { secret?: string; tier?: string };
-        sessionStorage.setItem("__sm_admin__", JSON.stringify({ secret: data.secret, tier: data.tier }));
+        // Store tier only — never persist the admin secret in page-accessible storage.
+        const data = msg as { tier?: string };
+        sessionStorage.setItem("__sm_admin__", JSON.stringify({ tier: data.tier }));
       } catch {}
       sendResponse({ ok: true });
       return false;

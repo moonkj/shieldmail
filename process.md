@@ -543,3 +543,69 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 - macOS Safari Extension 동일 흐름 검증
 - 인증 링크 실 사이트 테스트
 - App Store 제출 준비
+
+## 2026-04-15 — R16: 구독 모델 구현 (Wave 1~3)
+
+### 설계 (UX + 아키텍트 병렬)
+- UX: UsageBadge, LimitSheet 바텀시트, SubscriptionScreen, 한도 초과 토스트
+- 아키텍트: DailyQuota DO + StoreKit 2 + App Groups + Apple JWKS 검증
+
+### Wave 1: Worker — DailyQuota DO + 한도 체크
+- `DailyQuota` DO: free=1/day, pro=20/day, UTC 자동 리셋 (date-keyed DO ID)
+- `POST /alias/generate`: deviceId + subscriptionJWS 지원, 403 daily_limit_exceeded
+- 응답에 remaining/limit/tier 포함
+- 기존 요청 하위 호환 (deviceId 없으면 IP fallback)
+
+### Wave 2: Extension — 구독 UI
+- `UsageBadge`: 프로그레스 바 + "x/20 사용"
+- `LimitSheet`: 한도 초과 바텀시트 → 구독 화면 유도
+- `SubscriptionScreen`: 플랜 표시, Pro 혜택, $0.99/mo 구독 버튼
+- `deviceId`: crypto.randomUUID() + chrome.storage 영속
+- ios-injector: 403 처리 + showLimitToast
+- i18n: ko/en 구독 관련 전체 번역
+
+### Wave 3: iOS App — StoreKit 2 + Apple JWKS
+- `SubscriptionManager.swift`: purchase/restore/entitlements/updates
+- App Groups (`group.me.shld.shieldmail`) 공유
+- `SafariExtensionHandler.swift`: getSubscription + purchase native messaging
+- `apple-jws.ts`: ECDSA P-256 서명 검증, x5c 체인, Apple Root CA G3 핑거프린트 핀
+
+### 구독 리뷰 (팀 에이전트)
+- CRITICAL 4건 + HIGH 3건 수정 (필드명 불일치, deviceId 스푸핑, App Groups 실패)
+- 소비자 플로우 A~E 검증: JWS 저장 버그 수정 (transaction.id → jsonRepresentation)
+
+### 관리자 테스트 모드
+- 버전 5탭 → 비밀번호(ADMIN_SECRET) → Free/Pro 전환
+- Worker: `/admin/auth`, `/admin/set-tier`, `/admin/stats` 엔드포인트
+- 통계: 이번주 무료, 누적 무료, 이번달 구독 카운트
+
+### 커밋
+- `6f0c32d feat: subscription model — free 1/day, Pro 20/day at $0.99/mo`
+- `38651c0 feat: Wave 3 — StoreKit 2, Apple JWKS verification`
+- `33218a7 feat: admin testing mode + remove popup generate button`
+- `eba3318 feat: admin panel — 5-tap login, tier toggle, usage stats`
+- `2b6a677 fix: subscription verification — jsonRepresentation + admin tier sync`
+
+## 2026-04-15 — R17: App Store 제출 전 최종 리뷰
+
+### 최종 리뷰 (팀 에이전트)
+전체 67개 소스 파일 대상, 5개 기준(보안/앱스토어/결제/안정성/품질) 검토.
+
+### MUST-FIX 수정 (4건)
+| # | 이슈 | 수정 |
+|---|---|---|
+| SEC-1/PAY-1 | base64 fallback으로 서명 없이 Pro 획득 가능 | fallback 제거, JWS 서명 검증만 유지 |
+| SEC-2/SEC-3 | admin secret이 sessionStorage(페이지 접근 가능)에 저장 | sessionStorage에 tier만 저장, secret은 chrome.storage만 |
+| SEC-4 | admin stats가 GET — secret이 URL에 노출 | POST 방식으로 전환 |
+| ASR-2 | Extension Info.plist에 중복 개인정보 키 | 제거 (PrivacyInfo.xcprivacy가 단일 진실 소스) |
+
+### 추가 수정
+- `manifest.json`에 `commands` 섹션 추가 (Cmd+Shift+E 단축키)
+- generate 버튼 제거된 테스트 동기화
+
+### 최종 테스트: Worker 272 + Extension 449 = **721/721 통과**
+
+### 다음 단계
+- App Store Connect에서 앱 등록
+- StoreKit Configuration 파일 생성 (Sandbox 테스트)
+- TestFlight 베타 배포

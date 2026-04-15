@@ -119,7 +119,11 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
       const apiBase = settings.apiBaseUrl.replace(/\/$/, "");
       const adminSecret = secret || await getStoredSecret();
       if (!adminSecret) return;
-      const resp = await fetch(`${apiBase}/admin/stats?secret=${encodeURIComponent(adminSecret)}`);
+      const resp = await fetch(`${apiBase}/admin/stats`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ secret: adminSecret }),
+      });
       if (resp.ok) {
         const data = (await resp.json()) as AdminStats;
         setStats(data);

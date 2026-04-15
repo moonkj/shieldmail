@@ -47,72 +47,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("MainScreen — generate flow", () => {
-  it("clicking generate shows loading skeleton then alias card", async () => {
-    const navigate = vi.fn();
-    // Mock fetch for alias generation
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      jsonResponse(200, {
-        aliasId: "gen-1",
-        address: "gen1@shldmail.work",
-        expiresAt: Math.floor(Date.now() / 1000) + 600,
-        pollToken: "tok-gen",
-      }),
-    );
-    const { container } = renderComponent(MainScreen, { navigate });
-    await flush();
-
-    // Find and click generate button
-    const genBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.includes(t.main.generateNew),
-    );
-    expect(genBtn).toBeDefined();
-    genBtn!.click();
-    await flush();
-    // The loading skeleton or the alias should be shown
-    // After the async completes, wait for state update
-    await flush();
-    await flush();
-    // Storage should now have the alias
-    const stored = await chrome.storage.local.get("activeAliases");
-    const aliases = (stored as { activeAliases?: Record<string, AliasRecord> }).activeAliases;
-    if (aliases) {
-      expect(Object.keys(aliases).length).toBeGreaterThan(0);
-    }
-  });
-
-  it("shows error card on network failure during generate", async () => {
-    const navigate = vi.fn();
-    vi.spyOn(globalThis, "fetch").mockRejectedValueOnce(new Error("network error"));
-    const { container } = renderComponent(MainScreen, { navigate });
-    await flush();
-
-    const genBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.includes(t.main.generateNew),
-    );
-    genBtn!.click();
-    await flush();
-    await flush();
-    // Should show error card or error state
-    // The error state sets error to "network_unavailable"
-  });
-
-  it("shows error card when server returns non-ok", async () => {
-    const navigate = vi.fn();
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response("", { status: 500 }),
-    );
-    const { container } = renderComponent(MainScreen, { navigate });
-    await flush();
-
-    const genBtn = Array.from(container.querySelectorAll("button")).find(
-      (b) => b.textContent?.includes(t.main.generateNew),
-    );
-    genBtn!.click();
-    await flush();
-    await flush();
-  });
-});
+// Generate flow tests removed — popup no longer has a generate button.
+// Alias generation is done exclusively via the shield button in the content script.
 
 describe("MainScreen — alias card display", () => {
   it("displays alias address when stored in chrome.storage", async () => {

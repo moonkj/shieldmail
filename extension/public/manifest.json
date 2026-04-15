@@ -44,5 +44,14 @@
   ],
   "host_permissions": [
     "https://*/*"
-  ]
+  ],
+  "commands": {
+    "shieldmail-generate": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+E",
+        "mac": "Command+Shift+E"
+      },
+      "description": "ShieldMail 임시 이메일 생성"
+    }
+  }
 }
