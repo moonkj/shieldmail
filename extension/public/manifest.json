@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ShieldMail",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "가입 스트레스를 제거하는 자동화 인프라.",
   "icons": {
     "16": "icons/icon-16.png",

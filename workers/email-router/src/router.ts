@@ -405,6 +405,29 @@ export function buildRouter(): Hono<RouterCtx> {
     });
   });
 
+  // ──────────────────────────────────────────
+  // POST /admin/reset-stats  { secret }
+  // Admin-only: reset all usage statistics.
+  // ──────────────────────────────────────────
+  app.post("/admin/reset-stats", async (c) => {
+    const env = c.env;
+    let reqBody: { secret?: string } = {};
+    try { reqBody = await c.req.json(); } catch {}
+    const secret = typeof reqBody.secret === "string" ? reqBody.secret : "";
+    if (!secret || secret !== (env.ADMIN_SECRET ?? "")) {
+      return c.json({ error: "not_admin" }, 403);
+    }
+    const now = new Date();
+    const weekKey = isoWeek(now);
+    const monthKey = now.toISOString().slice(0, 7);
+    await Promise.all([
+      env.ALIAS_KV.delete(`stats:free:week:${weekKey}`),
+      env.ALIAS_KV.delete("stats:free:total"),
+      env.ALIAS_KV.delete(`stats:pro:month:${monthKey}`),
+    ]);
+    return c.json({ ok: true, reset: { week: weekKey, month: monthKey } });
+  });
+
   // Health.
   app.get("/health", (c) => c.json({ ok: true, service: "shieldmail-email-router" }));
 

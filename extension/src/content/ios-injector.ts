@@ -145,6 +145,89 @@ const CSS = `
 const SESSION_KEY = "__sm_alias__";
 const SESSION_USAGE_KEY = "__sm_usage__";
 
+/** Check if user is Pro (cached tier or admin). */
+async function checkProStatus(): Promise<boolean> {
+  // 1. sessionStorage admin tier
+  try {
+    const raw = sessionStorage.getItem("__sm_admin__");
+    if (raw) {
+      const admin = JSON.parse(raw) as { tier?: string };
+      if (admin.tier === "pro") return true;
+    }
+  } catch {}
+  // 2. chrome.storage cached tier
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      const r = await Promise.race([
+        chrome.storage.local.get(["cachedTier", "adminTier", "adminMode"]) as Promise<Record<string, unknown>>,
+        new Promise<Record<string, unknown>>((r) => setTimeout(() => r({}), 1000)),
+      ]);
+      if (r.cachedTier === "pro") return true;
+      if ((r as { adminMode?: boolean }).adminMode && r.adminTier === "pro") return true;
+    }
+  } catch {}
+  return false;
+}
+
+/** Show Pro upgrade interstitial for free users (3s countdown). */
+function showPromoInterstitial(): Promise<void> {
+  return new Promise((resolve) => {
+    document.querySelectorAll("[data-shieldmail-promo]").forEach((e) => e.remove());
+
+    const overlay = document.createElement("div");
+    overlay.setAttribute("data-shieldmail-promo", "");
+    overlay.style.cssText = [
+      "position:fixed", "top:0", "left:0", "width:100%", "height:100%",
+      "z-index:2147483647", "display:flex", "align-items:center", "justify-content:center",
+      "background:rgba(0,0,0,0.85)", "font-family:-apple-system,sans-serif",
+    ].join(";");
+
+    const langPrefix = (navigator.language ?? "en").toLowerCase().slice(0, 2);
+    const promoText: Record<string, { title: string; sub: string; cta: string; skip: string }> = {
+      ko: { title: "ShieldMail Pro", sub: "광고 없이 하루 20회 사용", cta: "월 $0.99로 업그레이드", skip: "3초 후 계속..." },
+      ja: { title: "ShieldMail Pro", sub: "広告なしで1日20回利用", cta: "月$0.99でアップグレード", skip: "3秒後に続行..." },
+      zh: { title: "ShieldMail Pro", sub: "无广告，每天20次", cta: "每月$0.99升级", skip: "3秒后继续..." },
+      fr: { title: "ShieldMail Pro", sub: "Sans pub, 20 fois par jour", cta: "Passer à Pro · $0.99/mois", skip: "Continue dans 3s..." },
+      hi: { title: "ShieldMail Pro", sub: "बिना विज्ञापन, रोज़ 20 बार", cta: "$0.99/माह में अपग्रेड", skip: "3 सेकंड में जारी..." },
+    };
+    const t = promoText[langPrefix] ?? { title: "ShieldMail Pro", sub: "No ads, 20 aliases per day", cta: "Upgrade for $0.99/mo", skip: "Continuing in 3s..." };
+
+    const card = document.createElement("div");
+    card.style.cssText =
+      "background:#1a1a1e;border-radius:20px;padding:40px 32px;text-align:center;max-width:340px;width:90%;";
+
+    card.innerHTML = `
+      <div style="font-size:32px;font-weight:800;color:#00D4AA;margin-bottom:12px">${t.title}</div>
+      <div style="font-size:16px;color:#fff;margin-bottom:8px">${t.sub}</div>
+      <div style="font-size:13px;color:#888;margin-bottom:24px">${t.cta}</div>
+      <div data-countdown style="font-size:12px;color:#666">${t.skip}</div>
+    `;
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    let sec = 3;
+    const countdownEl = card.querySelector("[data-countdown]") as HTMLElement;
+    const timer = setInterval(() => {
+      sec--;
+      if (sec <= 0) {
+        clearInterval(timer);
+        overlay.remove();
+        resolve();
+      } else {
+        const skipTexts: Record<string, (n: number) => string> = {
+          ko: (n) => `${n}초 후 계속...`,
+          ja: (n) => `${n}秒後に続行...`,
+          zh: (n) => `${n}秒后继续...`,
+          fr: (n) => `Continue dans ${n}s...`,
+          hi: (n) => `${n} सेकंड में जारी...`,
+        };
+        countdownEl.textContent = (skipTexts[langPrefix] ?? ((n: number) => `Continuing in ${n}s...`))(sec);
+      }
+    }, 1000);
+  });
+}
+
 /** Show a toast when the daily free limit is exceeded. */
 function showLimitToast(): void {
   // Remove any existing ShieldMail toasts.
@@ -510,6 +593,12 @@ export class IOSFloatingButtonInjector {
     this.setState("generating");
 
     const input = this.deps.getCurrentInput();
+
+    // Free users: show Pro promo interstitial (3s) before generating.
+    const isPro = await checkProStatus();
+    if (!isPro) {
+      await showPromoInterstitial();
+    }
 
     // Direct API call — bypasses background SW (unreliable on iOS Safari).
     // Content scripts have fetch() access via host_permissions.

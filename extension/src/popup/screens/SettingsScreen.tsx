@@ -114,6 +114,22 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
     setAdminLoading(false);
   };
 
+  const handleResetStats = async (): Promise<void> => {
+    try {
+      const apiBase = settings.apiBaseUrl.replace(/\/$/, "");
+      const adminSecret = secret || await getStoredSecret();
+      if (!adminSecret) return;
+      const resp = await fetch(`${apiBase}/admin/reset-stats`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ secret: adminSecret }),
+      });
+      if (resp.ok) {
+        setStats({ freeThisWeek: 0, freeTotal: 0, proThisMonth: 0 });
+      }
+    } catch {}
+  };
+
   const loadStats = async (): Promise<void> => {
     try {
       const apiBase = settings.apiBaseUrl.replace(/\/$/, "");
@@ -217,6 +233,12 @@ export function SettingsScreen({ navigate }: SettingsScreenProps) {
                 </div>
               </div>
             )}
+
+            {/* Reset stats */}
+            <button type="button" onClick={() => void handleResetStats()}
+              style={{ marginTop: "8px", fontSize: "11px", color: "#FF3B30", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>
+              통계 초기화
+            </button>
           </div>
         )}
 
