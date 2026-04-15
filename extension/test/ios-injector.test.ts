@@ -84,6 +84,8 @@ describe("IOSFloatingButtonInjector", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set cachedTier=pro so promo interstitial is skipped in tests.
+    (chrome.storage.local as unknown as { _store: Map<string, unknown> })._store.set("cachedTier", "pro");
   });
 
   afterEach(() => {
@@ -352,7 +354,10 @@ describe("IOSFloatingButtonInjector — position with null visualViewport", () =
 // ── Done → polling transition timing ──────────────────────────────
 
 describe("IOSFloatingButtonInjector — done→polling timing", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (chrome.storage.local as unknown as { _store: Map<string, unknown> })._store.set("cachedTier", "pro");
+  });
   afterEach(() => {
     vi.useRealTimers();
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());
@@ -399,7 +404,10 @@ describe("IOSFloatingButtonInjector — done→polling timing", () => {
 // ── Error → default recovery timing ──────────────────────────────
 
 describe("IOSFloatingButtonInjector — error recovery at exactly 4000ms", () => {
-  beforeEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (chrome.storage.local as unknown as { _store: Map<string, unknown> })._store.set("cachedTier", "pro");
+  });
   afterEach(() => {
     vi.useRealTimers();
     document.querySelectorAll("[data-shieldmail-ios]").forEach((el) => el.remove());

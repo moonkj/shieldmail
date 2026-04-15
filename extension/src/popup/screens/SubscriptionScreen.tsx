@@ -20,15 +20,31 @@ export function SubscriptionScreen({ navigate }: SubscriptionScreenProps) {
   const [tier, setTier] = useState<SubscriptionTier>("free");
   const [loading, setLoading] = useState(true);
 
-  // Load subscription state on mount.
+  // Load subscription state on mount — try cached tier first, then native messaging.
   useEffect(() => {
     let mounted = true;
-    void getSubscriptionState().then((state) => {
+    void (async () => {
+      // 1. chrome.storage cached tier (fast).
+      try {
+        if (typeof chrome !== "undefined" && chrome.storage?.local) {
+          const r = await Promise.race([
+            chrome.storage.local.get("cachedTier") as Promise<Record<string, unknown>>,
+            new Promise<Record<string, unknown>>((r) => setTimeout(() => r({}), 1000)),
+          ]);
+          if (mounted && r.cachedTier === "pro") {
+            setTier("pro");
+            setLoading(false);
+            return;
+          }
+        }
+      } catch {}
+      // 2. Native messaging fallback.
+      const state = await getSubscriptionState();
       if (mounted) {
         setTier(state.tier);
         setLoading(false);
       }
-    });
+    })();
     return () => { mounted = false; };
   }, []);
 
