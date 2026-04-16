@@ -310,11 +310,11 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 ## 2026-04-08 — R11: Cloudflare Worker 배포 + production hardening
 
 ### B 트랙 (Worker 실배포)
-- ALIAS_KV 네임스페이스 생성: `996d9716e4774458994c57c281d99f1a` (prod) + `fe0a2777f04b4a548f7b2b3f068d9b97` (preview)
+- ALIAS_KV 네임스페이스 생성: `<REDACTED>` (prod) + `<REDACTED>` (preview)
 - HMAC_KEY 32-byte hex secret 등록
 - `wrangler.toml`: KV ID 교체, `new_classes` → `new_sqlite_classes` (free plan 요건), `[[email]]` 바인딩 임시 disable (도메인 등록 후 활성)
 - `package.json`: `vitest 1.6.1` → `2.1.9`, `vitest-pool-workers 0.14.2` → `0.5.5` (peer dep 호환)
-- **`wrangler deploy` 성공**: `https://shieldmail-email-router.relink-app.workers.dev`
+- **`wrangler deploy` 성공**: `https://<REDACTED>.workers.dev`
 - 스모크 테스트:
   - `POST /alias/generate` → 200 `{aliasId, address: ...@d2.shld.me, pollToken}`
   - `GET /alias/{id}/messages` → 200 `{messages:[], expired:false}`
