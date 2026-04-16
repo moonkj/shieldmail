@@ -205,6 +205,35 @@ private struct SubscriptionSection: View {
                         }
                     }
             }
+
+            // Subscription terms (Apple Guideline 3.1.2(c) required)
+            Text("ShieldMail Pro는 월 $0.99의 자동 갱신 구독입니다. 구매 확인 시 iTunes 계정에 청구되며, 현재 기간 종료 최소 24시간 전에 자동 갱신을 해제하지 않으면 구독이 자동 갱신됩니다.")
+                .font(.caption2)
+                .foregroundStyle(Color(.tertiaryLabel))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+
+            // Legal links (Apple Guideline 3.1.2(c) required)
+            HStack(spacing: 16) {
+                Button {
+                    if let url = URL(string: "https://moonkj.github.io/shieldmail/privacy.html") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text("개인정보 처리방침")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                }
+                Button {
+                    if let url = URL(string: "https://moonkj.github.io/shieldmail/terms.html") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text("이용약관")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                }
+            }
         }
         .padding(.vertical, 16)
         .background(Color(.systemGray6).opacity(0.6))

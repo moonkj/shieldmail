@@ -650,3 +650,34 @@ origin=https://qr.dhlottery.co.kr (실제 활성 탭)
 - TestFlight 베타 배포
 - App Store 심사 제출 (스크린샷, 설명, 키워드)
 - macOS Safari Extension 등록 문제 해결
+
+## 2026-04-16 — R19: App Store 심사 리젝 대응
+
+### 리젝 사유 (v1.0.0 build 3)
+1. **Guideline 2.1(b) — App Completeness**: IAP 상품이 App Store Connect에서 심사 제출되지 않음
+2. **Guideline 3.1.2(c) — Subscriptions**: 구독 구매 흐름에 필수 정보 누락 (구독명/기간/가격/자동갱신 조건/Privacy Policy/Terms of Use 링크)
+
+### 코드 수정
+
+#### Extension SubscriptionScreen
+- `SubscriptionScreen.tsx`: 개인정보 처리방침 + 이용약관 링크 추가
+- disclaimer 텍스트를 Apple 필수 요건에 맞게 확장 (구독명, 기간, 가격, 자동갱신/해지 조건)
+
+#### iOS/macOS SubscriptionSection
+- `ios/App/ContentView.swift`, `macos/App/ContentView.swift`:
+  - 구독 조건 고지 텍스트 추가 (SubscriptionSection 내부)
+  - 개인정보 처리방침 + 이용약관 링크 버튼 추가
+
+#### i18n 6개 언어 (ko, en, ja, zh, fr, hi)
+- `disclaimer`: 구독명/기간/가격/자동갱신 조건을 포함한 전문으로 확장
+- `privacyPolicy`, `termsOfUse`: 신규 문자열 추가
+
+### App Store Connect 수정
+- IAP 상품 (`me.shld.shieldmail.pro.monthly`): 스크린샷 업로드 → 상태 "제출 준비 완료"
+- Privacy Policy URL: 이미 입력됨 확인
+- 앱 설명: 6개 언어 모두 Privacy Policy + Terms of Use URL 추가
+
+### 빌드
+- 빌드 번호: 1 → 4
+- Extension production 빌드 + iOS Archive + IPA 생성 완료
+- Xcode Organizer를 통한 App Store Connect 업로드

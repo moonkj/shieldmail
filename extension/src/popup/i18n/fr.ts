@@ -103,7 +103,9 @@ export const fr: Messages = {
     subscribe: "S'abonner à Pro · $0.99/mois",
     restore: "Restaurer l'achat",
     manage: "Gérer l'abonnement Apple",
-    disclaimer: "L'abonnement est facturé sur votre compte iTunes et se renouvelle automatiquement 24 heures avant l'expiration.",
+    disclaimer: "ShieldMail Pro est un abonnement mensuel à renouvellement automatique à $0.99/mois. Le paiement sera débité de votre compte iTunes lors de la confirmation de l'achat. L'abonnement se renouvelle automatiquement sauf si le renouvellement automatique est désactivé au moins 24 heures avant la fin de la période en cours.",
+    privacyPolicy: "Politique de confidentialité",
+    termsOfUse: "Conditions d'utilisation",
   },
   privacy: {
     footer:

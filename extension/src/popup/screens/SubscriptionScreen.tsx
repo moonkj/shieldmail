@@ -116,10 +116,30 @@ export function SubscriptionScreen({ navigate }: SubscriptionScreenProps) {
           {t.subscription.manage}
         </button>
 
-        {/* Disclaimer */}
-        <p style={{ fontSize: "11px", color: "var(--sm-text-tertiary)", textAlign: "center", marginTop: "12px" }}>
+        {/* Subscription terms (Apple required) */}
+        <p style={{ fontSize: "11px", color: "var(--sm-text-tertiary)", textAlign: "center", marginTop: "12px", lineHeight: "1.4" }}>
           {t.subscription.disclaimer}
         </p>
+
+        {/* Legal links (Apple required) */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "16px", marginTop: "8px" }}>
+          <a
+            href="https://moonkj.github.io/shieldmail/privacy.html"
+            target="_blank"
+            rel="noopener"
+            style={{ fontSize: "11px", color: "var(--sm-text-secondary)" }}
+          >
+            {t.subscription.privacyPolicy}
+          </a>
+          <a
+            href="https://moonkj.github.io/shieldmail/terms.html"
+            target="_blank"
+            rel="noopener"
+            style={{ fontSize: "11px", color: "var(--sm-text-secondary)" }}
+          >
+            {t.subscription.termsOfUse}
+          </a>
+        </div>
       </div>
       <PrivacyFooter />
     </div>

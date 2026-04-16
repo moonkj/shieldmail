@@ -103,7 +103,9 @@ export const ja: Messages = {
     subscribe: "Proに登録 · 月額$0.99",
     restore: "購入を復元",
     manage: "Appleサブスクリプションを管理",
-    disclaimer: "サブスクリプションはiTunesアカウントに請求され、有効期限の24時間前に自動更新されます。",
+    disclaimer: "ShieldMail Proは月額$0.99の自動更新サブスクリプションです。購入確認時にiTunesアカウントに請求されます。現在の期間終了の少なくとも24時間前に自動更新をオフにしない限り、サブスクリプションは自動的に更新されます。",
+    privacyPolicy: "プライバシーポリシー",
+    termsOfUse: "利用規約",
   },
   privacy: {
     footer:

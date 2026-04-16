@@ -100,7 +100,9 @@ export const ko = {
     subscribe: "Pro 구독하기 · 월 $0.99",
     restore: "구독 복원",
     manage: "Apple 구독 관리",
-    disclaimer: "구독은 iTunes 계정으로 청구되며 만료 24시간 전 자동 갱신됩니다.",
+    disclaimer: "ShieldMail Pro는 월 $0.99의 자동 갱신 구독입니다. 구매 확인 시 iTunes 계정에 청구되며, 현재 기간 종료 최소 24시간 전에 자동 갱신을 해제하지 않으면 구독이 자동 갱신됩니다.",
+    privacyPolicy: "개인정보 처리방침",
+    termsOfUse: "이용약관",
   },
   privacy: {
     footer:

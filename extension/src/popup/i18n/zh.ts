@@ -103,7 +103,9 @@ export const zh: Messages = {
     subscribe: "订阅 Pro · $0.99/月",
     restore: "恢复购买",
     manage: "管理 Apple 订阅",
-    disclaimer: "订阅将通过 iTunes 账户扣费，并在到期前 24 小时自动续订。",
+    disclaimer: "ShieldMail Pro 是每月 $0.99 的自动续订订阅。购买确认后将从您的 iTunes 账户扣费。除非在当前订阅期结束前至少 24 小时关闭自动续订，否则订阅将自动续期。",
+    privacyPolicy: "隐私政策",
+    termsOfUse: "使用条款",
   },
   privacy: {
     footer:
